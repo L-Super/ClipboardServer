@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>设备指纹测试</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: white;
+        }
+        .container {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            color: #333;
+        }
+        h1 {
+            text-align: center;
+            color: #667eea;
+            margin-bottom: 30px;
+        }
+        .fingerprint-info {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+        .fingerprint-info h3 {
+            color: #667eea;
+            margin-bottom: 15px;
+        }
+        .fingerprint-info p {
+            margin: 10px 0;
+            font-family: monospace;
+            background: #fff;
+            padding: 10px;
+            border-radius: 5px;
+            border-left: 4px solid #667eea;
+            word-break: break-all;
+        }
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin: 10px;
+        }
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+        .loading {
+            display: none;
+            text-align: center;
+            color: #667eea;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>设备指纹测试</h1>
+        
+        <div class="fingerprint-info">
+            <h3>设备指纹信息</h3>
+            <p><strong>设备指纹哈希：</strong> <span id="fingerprintHash">点击生成按钮获取</span></p>
+            <p><strong>用户代理：</strong> <span id="userAgent"></span></p>
+            <p><strong>屏幕分辨率：</strong> <span id="screenResolution"></span></p>
+            <p><strong>时区：</strong> <span id="timezone"></span></p>
+            <p><strong>语言：</strong> <span id="languages"></span></p>
+            <p><strong>CPU核心数：</strong> <span id="cpuCores"></span></p>
+            <p><strong>内存：</strong> <span id="memory"></span></p>
+            <p><strong>平台：</strong> <span id="platform"></span></p>
+            <p><strong>Canvas指纹：</strong> <span id="canvasFingerprint"></span></p>
+            <p><strong>WebGL指纹：</strong> <span id="webglFingerprint"></span></p>
+        </div>
+        
+        <div style="text-align: center;">
+            <button class="btn" onclick="generateFingerprint()">生成设备指纹</button>
+            <button class="btn" onclick="copyFingerprint()">复制指纹</button>
+        </div>
+        
+        <div class="loading" id="loading">
+            <p>正在生成设备指纹...</p>
+        </div>
+    </div>
+
+    <script>
+        // 浏览器端设备指纹生成
+        async function generateDeviceFingerprint() {
+            const fingerprint = {
+                userAgent: navigator.userAgent,
+                screen: `${screen.width}x${screen.height}`,
+                timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+                languages: navigator.languages.join(','),
+                hardwareConcurrency: navigator.hardwareConcurrency || 'unknown',
+                deviceMemory: navigator.deviceMemory || 'unknown',
+                platform: navigator.userAgentData?.platform || navigator.platform || 'unknown',
+                // 添加Canvas指纹
+                canvasHash: await generateCanvasFingerprint(),
+                // WebGL指纹
+                webglHash: await generateWebGLFingerprint(),
+            };
+            
+            // 生成SHA-256哈希作为设备指纹
+            const fingerprintString = JSON.stringify(fingerprint);
+            const hashBuffer = await crypto.subtle.digest('SHA-256', 
+                new TextEncoder().encode(fingerprintString));
+            return Array.from(new Uint8Array(hashBuffer))
+                .map(b => b.toString(16).padStart(2, '0')).join('');
+        }
+
+        // 生成Canvas指纹
+        async function generateCanvasFingerprint() {
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            ctx.textBaseline = 'top';
+            ctx.font = '14px Arial';
+            ctx.fillText('DeviceFingerprint@2023', 2, 2);
+            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            return Array.from(imageData.data).slice(0, 50).join(''); // 只取前50个值
+        }
+
+        // 生成WebGL指纹
+        async function generateWebGLFingerprint() {
+            try {
+                const canvas = document.createElement('canvas');
+                const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+                if (!gl) return 'webgl_not_supported';
+                
+                const debugInfo = gl.getExtension('WEBGL_debug_renderer_info');
+                if (!debugInfo) return 'debug_info_not_supported';
+                
+                const vendor = gl.getParameter(debugInfo.UNMASKED_VENDOR_WEBGL);
+                const renderer = gl.getParameter(debugInfo.UNMASKED_RENDERER_WEBGL);
+                
+                return `${vendor}|${renderer}`;
+            } catch (error) {
+                return 'webgl_error';
+            }
+        }
+
+        async function generateFingerprint() {
+            document.getElementById('loading').style.display = 'block';
+            
+            try {
+                const fingerprint = await generateDeviceFingerprint();
+                document.getElementById('fingerprintHash').textContent = fingerprint;
+                
+                // 显示详细信息
+                document.getElementById('userAgent').textContent = navigator.userAgent;
+                document.getElementById('screenResolution').textContent = `${screen.width}x${screen.height}`;
+                document.getElementById('timezone').textContent = Intl.DateTimeFormat().resolvedOptions().timeZone;
+                document.getElementById('languages').textContent = navigator.languages.join(', ');
+                document.getElementById('cpuCores').textContent = navigator.hardwareConcurrency || 'unknown';
+                document.getElementById('memory').textContent = navigator.deviceMemory || 'unknown';
+                document.getElementById('platform').textContent = navigator.userAgentData?.platform || navigator.platform || 'unknown';
+                document.getElementById('canvasFingerprint').textContent = await generateCanvasFingerprint();
+                document.getElementById('webglFingerprint').textContent = await generateWebGLFingerprint();
+                
+            } catch (error) {
+                console.error('生成指纹失败:', error);
+                document.getElementById('fingerprintHash').textContent = '生成失败: ' + error.message;
+            } finally {
+                document.getElementById('loading').style.display = 'none';
+            }
+        }
+
+        function copyFingerprint() {
+            const fingerprint = document.getElementById('fingerprintHash').textContent;
+            if (fingerprint && fingerprint !== '点击生成按钮获取' && !fingerprint.startsWith('生成失败')) {
+                navigator.clipboard.writeText(fingerprint).then(() => {
+                    alert('设备指纹已复制到剪贴板！');
+                }).catch(() => {
+                    alert('复制失败，请手动复制');
+                });
+            } else {
+                alert('请先生成设备指纹');
+            }
+        }
+
+        // 页面加载时自动生成指纹
+        window.addEventListener('load', generateFingerprint);
+    </script>
+</body>
+</html>

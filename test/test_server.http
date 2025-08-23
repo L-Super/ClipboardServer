@@ -1,0 +1,84 @@
+###
+# Test your FastAPI endpoints
+
+POST http://127.0.0.1:8000/auth/register
+Accept: application/json
+
+{
+  "email": "user1@example.com",
+  "password": "123"
+}
+
+###
+
+POST http://127.0.0.1:8000/auth/login
+Content-Type: application/json
+
+{
+  "email": "user1@example.com",
+  "password": "123",
+  "device_id": "device_id_1",
+  "device_name": "device_name",
+  "device_type": "macos"
+}
+
+> {%
+    client.log('access_token:', response.body.access_token)
+    client.global.set("auth_token", response.body.access_token)
+%}
+
+###
+
+POST http://localhost:8000/clipboard
+Content-Type: multipart/form-data; boundary=WebAppBoundary
+Authorization: Bearer {{auth_token}}
+
+--WebAppBoundary
+Content-Disposition: form-data; name="type"
+Content-Type: text/plain
+
+image
+--WebAppBoundary
+Content-Disposition: form-data; name="file"; filename="test.jpg"
+Content-Type: image/jpeg
+
+< ./test.jpg
+--WebAppBoundary--
+
+###
+POST http://localhost:8000/clipboard
+Content-Type: multipart/form-data; boundary=WebAppBoundary
+Authorization: Bearer {{auth_token}}
+
+--WebAppBoundary
+Content-Disposition: form-data; name="type"
+Content-Type: text/plain
+
+text
+--WebAppBoundary
+Content-Disposition: form-data; name="data"
+
+hello world
+--WebAppBoundary--
+
+###
+
+###
+
+WEBSOCKET ws://localhost:8000/sync/notify?token={{auth_token}}
+Content-Type: application/json // used only for IDE highlighting.
+// Highlighting is applied for each message independently.
+
+
+{
+  "message": "Send when the WebSocket connection is opened"
+}
+=== wait-for-server
+
+{
+  "message": "Wait for the server message and send the current message as response"
+}
+===
+{
+  "message": "Send after previous message without waiting for the server message"
+}

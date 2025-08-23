@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QClipboard - 登录/注册</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <div class="form-container">
+            <div class="form-header">
+                <h1>QClipboard</h1>
+                <p>跨设备同步您的剪贴板内容</p>
+            </div>
+            
+            <!-- 登录表单 -->
+            <form id="loginForm" class="form active">
+                <h2>登录</h2>
+                <div class="form-group">
+                    <i class="fas fa-envelope"></i>
+                    <input type="email" id="loginEmail" placeholder="邮箱地址" required>
+                </div>
+                <div class="form-group">
+                    <i class="fas fa-lock"></i>
+                    <input type="password" id="loginPassword" placeholder="密码" required>
+                </div>
+                <div class="form-group has-generate-btn">
+                    <i class="fas fa-desktop"></i>
+                    <input type="text" id="loginDeviceName" placeholder="设备名称" required>
+                    <button type="button" id="generateDeviceNameBtn" class="generate-btn" title="自动生成设备名称">
+                        <i class="fas fa-pen-to-square"></i>
+                    </button>
+                </div>
+                <button type="submit" class="btn btn-primary">
+                    <span class="btn-text">登录</span>
+                    <span class="btn-loading" style="display: none;">
+                        <i class="fas fa-spinner fa-spin"></i>
+                    </span>
+                </button>
+                <p class="form-switch">
+                    还没有账号？ <a href="#" onclick="switchForm('register')">立即注册</a>
+                </p>
+            </form>
+
+            <!-- 注册表单 -->
+            <form id="registerForm" class="form">
+                <h2>注册</h2>
+
+                <div class="form-group">
+                    <i class="fas fa-envelope"></i>
+                    <input type="email" id="registerEmail" placeholder="邮箱地址" required>
+                </div>
+                <div class="form-group">
+                    <i class="fas fa-lock"></i>
+                    <input type="password" id="registerPassword" placeholder="密码" required>
+                </div>
+                <div class="form-group">
+                    <i class="fas fa-lock"></i>
+                    <input type="password" id="registerConfirmPassword" placeholder="确认密码" required>
+                </div>
+                <button type="submit" class="btn btn-primary">
+                    <span class="btn-text">注册</span>
+                    <span class="btn-loading" style="display: none;">
+                        <i class="fas fa-spinner fa-spin"></i>
+                    </span>
+                </button>
+                <p class="form-switch">
+                    已有账号？ <a href="#" onclick="switchForm('login')">立即登录</a>
+                </p>
+            </form>
+        </div>
+    </div>
+
+    <!-- 消息提示 -->
+    <div id="message" class="message" style="display: none;">
+        <span id="messageText"></span>
+        <button onclick="hideMessage()" class="message-close">
+            <i class="fas fa-times"></i>
+        </button>
+    </div>
+
+    <script src="/static/script.js"></script>
+</body>
+</html>
