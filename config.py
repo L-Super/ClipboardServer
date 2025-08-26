@@ -1,5 +1,3 @@
-import os
-
 from pydantic_settings import BaseSettings
 
 
@@ -12,6 +10,7 @@ class Settings(BaseSettings):
     REFRESH_TOKEN_EXPIRE_DAYS: int = 30
     TZ: str = "Asia/Shanghai"
 
+    # use env file to get var
     class Config:
         env_file = ".env"
 
