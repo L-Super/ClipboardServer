@@ -26,6 +26,9 @@ uv sync
 ```bash
 # 启动开发服务器
 uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+
+# 后台启动
+nohup uv run uvicorn main:app --host 0.0.0.0 --port 8000 &
 ```
 
 ### 3. 访问 Web 界面

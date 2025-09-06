@@ -20,7 +20,7 @@ class User(Base):
 
 class Device(Base):
     __tablename__ = "devices"
-    id = Column(String(36), primary_key=True, index=True)
+    id = Column(String(64), primary_key=True, index=True)
     user_id = Column(String(36), ForeignKey("users.id"), nullable=False)
     name = Column(String(50), nullable=False)
     type = Column(Enum('ios', 'android', 'windows', 'macos', 'linux', 'web'), nullable=False)
