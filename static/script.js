@@ -2,14 +2,14 @@
 let currentForm = 'login';
 
 // 页面加载完成后初始化
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
     // 绑定表单提交事件
     document.getElementById('loginForm').addEventListener('submit', handleLogin);
     document.getElementById('registerForm').addEventListener('submit', handleRegister);
-    
+
     // 生成默认设备ID
     generateDeviceId();
-    
+
     // 绑定设备名称生成按钮事件
     document.getElementById('generateDeviceNameBtn').addEventListener('click', generateDeviceName);
 });
@@ -18,7 +18,7 @@ document.addEventListener('DOMContentLoaded', function() {
 function switchForm(formType) {
     const loginForm = document.getElementById('loginForm');
     const registerForm = document.getElementById('registerForm');
-    
+
     if (formType === 'register') {
         loginForm.classList.remove('active');
         registerForm.classList.add('active');
@@ -46,10 +46,10 @@ async function generateDeviceFingerprint() {
         webglHash: await generateWebGLFingerprint(),
         // 其他可收集的稳定特征
     };
-    
+
     // 生成SHA-256哈希作为设备指纹
     const fingerprintString = JSON.stringify(fingerprint);
-    const hashBuffer = await crypto.subtle.digest('SHA-256', 
+    const hashBuffer = await crypto.subtle.digest('SHA-256',
         new TextEncoder().encode(fingerprintString));
     return Array.from(new Uint8Array(hashBuffer))
         .map(b => b.toString(16).padStart(2, '0')).join('');
@@ -72,13 +72,13 @@ async function generateWebGLFingerprint() {
         const canvas = document.createElement('canvas');
         const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
         if (!gl) return 'webgl_not_supported';
-        
+
         const debugInfo = gl.getExtension('WEBGL_debug_renderer_info');
         if (!debugInfo) return 'debug_info_not_supported';
-        
+
         const vendor = gl.getParameter(debugInfo.UNMASKED_VENDOR_WEBGL);
         const renderer = gl.getParameter(debugInfo.UNMASKED_RENDERER_WEBGL);
-        
+
         return `${vendor}|${renderer}`;
     } catch (error) {
         return 'webgl_error';
@@ -102,11 +102,11 @@ async function generateDeviceId() {
 function showMessage(text, type = 'info') {
     const message = document.getElementById('message');
     const messageText = document.getElementById('messageText');
-    
+
     message.className = `message ${type}`;
     messageText.textContent = text;
     message.style.display = 'flex';
-    
+
     // 5秒后自动隐藏
     setTimeout(() => {
         hideMessage();
@@ -122,7 +122,7 @@ function hideMessage() {
 function setButtonLoading(button, loading) {
     const btnText = button.querySelector('.btn-text');
     const btnLoading = button.querySelector('.btn-loading');
-    
+
     if (loading) {
         btnText.style.display = 'none';
         btnLoading.style.display = 'inline-block';
@@ -137,23 +137,23 @@ function setButtonLoading(button, loading) {
 // 处理登录
 async function handleLogin(e) {
     e.preventDefault();
-    
+
     const button = e.target.querySelector('button[type="submit"]');
     setButtonLoading(button, true);
-    
+
     try {
         const email = document.getElementById('loginEmail').value;
         const password = document.getElementById('loginPassword').value;
         const deviceId = document.getElementById('hiddenDeviceId').value;
         const deviceName = document.getElementById('loginDeviceName').value;
         const deviceType = getDeviceType();
-        
+
         // 验证必填字段
         if (!email || !password || !deviceId || !deviceName || !deviceType) {
             showMessage('请填写所有必填字段', 'error');
             return;
         }
-        
+
         const response = await fetch('/auth/login', {
             method: 'POST',
             headers: {
@@ -167,20 +167,20 @@ async function handleLogin(e) {
                 device_type: deviceType
             })
         });
-        
+
         const data = await response.json();
-        
+
         if (response.ok) {
             showMessage('登录成功！', 'success');
-            
+
             // 保存token到localStorage
             localStorage.setItem('access_token', data.access_token);
             localStorage.setItem('refresh_token', data.refresh_token);
-            
+
             // 延迟跳转到主页面
             setTimeout(() => {
                 window.location.href = '/dashboard';
-            }, 1500);
+            });
         } else {
             showMessage(data.detail || '登录失败，请检查邮箱和密码', 'error');
         }
@@ -195,40 +195,40 @@ async function handleLogin(e) {
 // 处理注册
 async function handleRegister(e) {
     e.preventDefault();
-    
+
     const button = e.target.querySelector('button[type="submit"]');
     setButtonLoading(button, true);
-    
+
     try {
         const email = document.getElementById('registerEmail').value;
         const password = document.getElementById('registerPassword').value;
         const confirmPassword = document.getElementById('registerConfirmPassword').value;
-        
+
         // 验证必填字段
         if (!email || !password || !confirmPassword) {
             showMessage('请填写所有必填字段', 'error');
             return;
         }
-        
+
         // 验证密码确认
         if (password !== confirmPassword) {
             showMessage('两次输入的密码不一致', 'error');
             return;
         }
-        
+
         // 验证密码长度
         if (password.length < 6) {
             showMessage('密码长度至少6位', 'error');
             return;
         }
-        
+
         // 验证邮箱格式
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         if (!emailRegex.test(email)) {
             showMessage('请输入有效的邮箱地址', 'error');
             return;
         }
-        
+
         const response = await fetch('/auth/register', {
             method: 'POST',
             headers: {
@@ -239,12 +239,12 @@ async function handleRegister(e) {
                 password: password
             })
         });
-        
+
         const data = await response.json();
-        
+
         if (response.ok) {
             showMessage('注册成功！请登录', 'success');
-            
+
             // 切换到登录表单
             setTimeout(() => {
                 switchForm('login');
@@ -274,10 +274,10 @@ async function handleRegister(e) {
 }
 
 // 实时验证密码确认
-document.getElementById('registerConfirmPassword').addEventListener('input', function() {
+document.getElementById('registerConfirmPassword').addEventListener('input', function () {
     const password = document.getElementById('registerPassword').value;
     const confirmPassword = this.value;
-    
+
     if (confirmPassword && password !== confirmPassword) {
         this.style.borderColor = '#f44336';
     } else {
@@ -286,10 +286,10 @@ document.getElementById('registerConfirmPassword').addEventListener('input', fun
 });
 
 // 实时验证邮箱格式
-document.getElementById('registerEmail').addEventListener('input', function() {
+document.getElementById('registerEmail').addEventListener('input', function () {
     const email = this.value;
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    
+
     if (email && !emailRegex.test(email)) {
         this.style.borderColor = '#f44336';
     } else {
@@ -301,7 +301,7 @@ document.getElementById('registerEmail').addEventListener('input', function() {
 function generateDeviceName() {
     const deviceNameInput = document.getElementById('loginDeviceName');
     deviceNameInput.value = getDeviceName();
-    
+
     // 显示提示信息
     showMessage('设备名称已自动生成', 'success');
 }
@@ -314,11 +314,11 @@ function getDeviceType() {
 
     // 定义映射表
     const deviceTypeMap = [
-        { pattern: /android/, type: 'android' },
-        { pattern: /iphone|ipad|ipod/, type: 'ios' },
-        { pattern: /windows/, type: 'windows' },
-        { pattern: /macintosh|mac os x/, type: 'macos' },
-        { pattern: /linux/, type: 'linux' }
+        {pattern: /android/, type: 'android'},
+        {pattern: /iphone|ipad|ipod/, type: 'ios'},
+        {pattern: /windows/, type: 'windows'},
+        {pattern: /macintosh|mac os x/, type: 'macos'},
+        {pattern: /linux/, type: 'linux'}
     ];
 
     // 优先检测 userAgent
@@ -341,7 +341,7 @@ function getDeviceType() {
 function getDeviceName() {
     let deviceType;
     if (/Mobi|Android/i.test(navigator.userAgent)) deviceType = 'Mobile';
-    if (/Tablet|iPad/i.test(navigator.userAgent)) deviceType= 'Tablet';
+    if (/Tablet|iPad/i.test(navigator.userAgent)) deviceType = 'Tablet';
     else deviceType = 'Desktop';
 
     const platform = navigator.userAgentData?.platform || navigator.platform || 'unknown';
