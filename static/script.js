@@ -177,6 +177,12 @@ async function handleLogin(e) {
             localStorage.setItem('access_token', data.access_token);
             localStorage.setItem('refresh_token', data.refresh_token);
 
+            let protocol_url = `qclipboard://login?email=${encodeURIComponent(email)}&token=${encodeURIComponent(data.access_token)}&device_name=${encodeURIComponent(deviceName)}`
+            try {
+                window.location.href = protocol_url;
+            } catch (error) {
+                console.error('Error:', error);
+            }
             // 延迟跳转到主页面
             setTimeout(() => {
                 window.location.href = '/dashboard';
