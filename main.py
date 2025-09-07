@@ -3,7 +3,7 @@ import os
 from datetime import datetime, timedelta, timezone
 
 from fastapi import FastAPI, HTTPException, status, Depends, WebSocket, WebSocketDisconnect, BackgroundTasks, \
-    UploadFile, Form, File
+    UploadFile, Form, File, Header
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import HTMLResponse
 from jose import jwt, JWTError
@@ -164,11 +164,17 @@ def login(user: schemas.UserLogin, db: Session = Depends(get_db)):
     }
 
 
-@app.post("/auth/verify-token")
-def verify_token(token: str = Form(...)):
+@app.get("/auth/verify-token")
+def verify_token(authorization: str = Header(...)):
     """
-    校验 access_token 是否有效
+    校验 access_token 是否有效（通过 Authorization 头）
     """
+    if not authorization.startswith("Bearer "):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid authorization header"
+        )
+    token = authorization.removeprefix("Bearer ").strip()
     try:
         user_id, device_id = auth.decode_token(token)
         return {"code": 0, "message": "Token is valid", "user_id": user_id, "device_id": device_id}
@@ -177,7 +183,6 @@ def verify_token(token: str = Form(...)):
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Token is invalid or expired"
         )
-
 
 @app.post("/auth/refresh", response_model=schemas.Token)
 def refresh_token(refresh_token: str, db: Session = Depends(get_db)):
