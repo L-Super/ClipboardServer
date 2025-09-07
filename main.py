@@ -164,6 +164,21 @@ def login(user: schemas.UserLogin, db: Session = Depends(get_db)):
     }
 
 
+@app.post("/auth/verify-token")
+def verify_token(token: str = Form(...)):
+    """
+    校验 access_token 是否有效
+    """
+    try:
+        user_id, device_id = auth.decode_token(token)
+        return {"code": 0, "message": "Token is valid", "user_id": user_id, "device_id": device_id}
+    except JWTError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Token is invalid or expired"
+        )
+
+
 @app.post("/auth/refresh", response_model=schemas.Token)
 def refresh_token(refresh_token: str, db: Session = Depends(get_db)):
     credentials_exception = HTTPException(

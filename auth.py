@@ -39,7 +39,7 @@ def create_refresh_token(data: dict):
     return encoded_jwt
 
 
-async def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
+def decode_token(token):
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
@@ -48,14 +48,23 @@ async def get_current_user(token: str = Depends(oauth2_scheme), db: Session = De
     try:
         payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
         user_id: str = payload.get("sub")
-        if user_id is None:
+        device_id: str = payload.get("device_id")
+        if user_id is None and device_id is None:
             raise credentials_exception
+        return user_id, device_id
     except JWTError:
         raise credentials_exception
 
+
+async def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
+    user_id, _ = decode_token(token)
     user = crud.get_user(db, user_id=user_id)
     if user is None:
-        raise credentials_exception
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Could not find user",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
     return user
 
 
@@ -63,23 +72,14 @@ async def get_current_active_device(
         token: str = Depends(oauth2_scheme),
         db: Session = Depends(get_db)
 ):
-    credentials_exception = HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Could not validate credentials",
-        headers={"WWW-Authenticate": "Bearer"},
-    )
-    try:
-        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
-        device_id: str = payload.get("device_id")
-        if device_id is None:
-            raise credentials_exception
-    except JWTError:
-        print('get current active device failed')
-        raise credentials_exception
-
+    _, device_id = decode_token(token)
     device = crud.get_device(db, device_id=device_id)
     if device is None or not device.is_active:
-        raise credentials_exception
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Could not find device",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
 
     # 更新设备最后活动时间
     device.last_active = datetime.now(timezone.utc)
