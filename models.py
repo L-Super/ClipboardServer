@@ -34,7 +34,7 @@ class ClipboardItem(Base):
     __tablename__ = "clipboard_items"
     id = Column(Integer, primary_key=True, autoincrement=True)
     user_id = Column(String(36), ForeignKey("users.id"), nullable=False)
-    device_id = Column(String(36), ForeignKey("devices.id"), nullable=False)
+    device_id = Column(String(64), ForeignKey("devices.id"), nullable=False)
     item_type = Column(Enum('text', 'image', 'file'), nullable=False)
     content_hash = Column(String(64), nullable=False)
     content = Column(Text)
@@ -50,7 +50,7 @@ class ClipboardItem(Base):
 class SyncState(Base):
     __tablename__ = "sync_state"
     user_id = Column(String(36), ForeignKey("users.id"), primary_key=True)
-    device_id = Column(String(36), ForeignKey("devices.id"), primary_key=True)
+    device_id = Column(String(64), ForeignKey("devices.id"), primary_key=True)
     # 最后一次同步的ID
     last_synced_id = Column(Integer, default=0)
     last_sync = Column(TIMESTAMP, server_default=func.now(), onupdate=func.now())
