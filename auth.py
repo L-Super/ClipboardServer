@@ -49,8 +49,21 @@ def decode_token(token):
         payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
         user_id: str = payload.get("sub")
         device_id: str = payload.get("device_id")
-        if user_id is None and device_id is None:
+        exp = payload.get("exp")
+
+        if user_id is None or device_id is None:
             raise credentials_exception
+
+        # 校验 exp 字段是否过期
+        if exp is not None:
+            now = datetime.now(timezone.utc).timestamp()
+            if now > exp:
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="Token has expired",
+                    headers={"WWW-Authenticate": "Bearer"},
+                )
+
         return user_id, device_id
     except JWTError:
         raise credentials_exception
