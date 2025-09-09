@@ -5,7 +5,14 @@ from config import settings
 
 # 数据库配置
 SQLALCHEMY_DATABASE_URL = settings.DATABASE_URL
-engine = create_engine(SQLALCHEMY_DATABASE_URL)
+engine = create_engine(SQLALCHEMY_DATABASE_URL,
+                       pool_recycle=1800,
+                       pool_pre_ping=True,
+                       pool_size=20,
+                       max_overflow=5,
+                       pool_timeout=3,
+                       pool_reset_on_return=True,
+                       pool_use_lifo=True)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 
