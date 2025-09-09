@@ -38,9 +38,6 @@ def get_file_url(file_path: str) -> str:
     return f"/files/{filename}"
 
 
-# 创建数据库表
-create_db()
-
 # FastAPI应用
 app = FastAPI(
     title="Clipboard Sync API",
@@ -56,6 +53,13 @@ app.mount("/files", StaticFiles(directory="uploads", check_dir=False), name="fil
 manager = ConnectionManager()
 
 app.mount("/static", StaticFiles(directory="static"), name="static")
+
+
+# 应用程序启动前运行
+@app.on_event("startup")
+def on_startup():
+    # 创建数据库表
+    create_db()
 
 
 # 根路由 - 返回登录页面
