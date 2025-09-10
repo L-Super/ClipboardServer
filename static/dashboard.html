@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>剪贴板同步 - 仪表板</title>
+    <title>QClipboard Sync - 仪表板</title>
     <link rel="stylesheet" href="/static/style.css">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
@@ -57,9 +57,14 @@
         
         .device-info {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            grid-template-columns: repeat(2, 1fr);;
             gap: 20px;
             margin-bottom: 30px;
+        }
+        @media (max-width: 600px) {
+            .device-info {
+                grid-template-columns: 1fr;
+            }
         }
         
         .info-item {
@@ -108,14 +113,14 @@
 <body>
     <div class="dashboard-container">
         <div class="dashboard-header">
-            <h1>剪贴板同步</h1>
+            <h1>QClipboard 剪贴板同步</h1>
             <p>欢迎使用跨设备剪贴板同步服务</p>
         </div>
         
         <div class="dashboard-card">
             <div class="welcome-message">
                 <h2>登录成功！</h2>
-                <p>您已成功连接到剪贴板同步服务</p>
+                <p>您已成功连接到 QClipboard 同步服务</p>
             </div>
             
             <div class="device-info">
@@ -163,7 +168,15 @@
             try {
                 const payload = JSON.parse(atob(token.split('.')[1]));
                 document.getElementById('userId').textContent = payload.sub || '未知';
-                document.getElementById('deviceId').textContent = payload.device_id || '未知';
+                // 优化设备ID显示，超出则截断并显示省略号
+                const deviceIdElem = document.getElementById('deviceId');
+                const deviceId = payload.device_id || '未知';
+                if (deviceId.length > 32) {
+                    deviceIdElem.textContent = deviceId.slice(0, 16) + '...' + deviceId.slice(-8);
+                    deviceIdElem.title = deviceId; // 鼠标悬停显示完整ID
+                } else {
+                    deviceIdElem.textContent = deviceId;
+                }
                 document.getElementById('loginTime').textContent = new Date().toLocaleString('zh-CN');
             } catch (error) {
                 console.error('解析token失败:', error);

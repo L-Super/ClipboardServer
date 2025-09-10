@@ -188,6 +188,7 @@ def verify_token(authorization: str = Header(...)):
             detail="Token is invalid or expired"
         )
 
+
 @app.post("/auth/refresh", response_model=schemas.Token)
 def refresh_token(refresh_token: str, db: Session = Depends(get_db)):
     credentials_exception = HTTPException(
@@ -399,14 +400,14 @@ async def websocket_endpoint(
     # 检查设备是否存在
     device = db.query(models.Device).filter(
         models.Device.id == device_id,
-        models.Device.user_id == user_id,
-        models.Device.is_active == True
+        models.Device.user_id == user_id
     ).first()
 
     if not device:
         await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
         return
 
+    crud.activate_device(db, device_id)
     # 连接WebSocket
     await manager.connect(websocket, user_id, device_id)
 

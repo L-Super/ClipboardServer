@@ -50,6 +50,13 @@ def get_or_create_device(db: Session, user_id: str, device_id: str, device_name:
     return db_device
 
 
+def activate_device(db: Session, device_id: str):
+    existing_device = db.query(models.Device).filter(models.Device.id == device_id).first()
+    if existing_device:
+        existing_device.is_active = True
+        db.commit()
+
+
 def get_device(db: Session, device_id: str) -> type[models.Device] | None:
     return db.query(models.Device).filter(models.Device.id == device_id).first()
 
