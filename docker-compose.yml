@@ -1,0 +1,31 @@
+services:
+  clipboard-server:
+    build: .
+    container_name: clipboard-server
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    env_file:
+      - path: ./.env
+    # volumes:
+    #   - ./.env:/app/.env
+      # - ./static:/app/static:ro
+      # - ./uploads:/app/uploads
+    develop:
+      # 创建一个 `watch` 来更新应用程序
+      watch:
+        # 将工作目录与容器中的 `/app` 目录同步
+        - action: sync
+          path: .
+          target: /app
+          # 排除项目虚拟环境
+          ignore:
+            - .venv/
+            - __pycache__/
+            - ./.env
+
+        # 当 `pyproject.toml` 发生变化时重建镜像
+        - action: rebuild
+          path: ./pyproject.toml
+
+
