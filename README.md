@@ -19,6 +19,9 @@
 ```bash
 # 使用 uv 安装依赖
 uv sync
+
+# 安装可选依赖，test 目录使用
+uv sync --extra test
 ```
 
 ### 2. 启动服务器
@@ -53,10 +56,56 @@ clipboard_server/
 │   ├── style.css        # 样式文件
 │   └── script.js        # 客户端脚本
 ├── uploads/             # 文件上传目录
-├── clipboard.db         # SQLite 数据库
 ├── pyproject.toml       # 项目配置
 └── README.md           # 项目说明
 ```
+
+## Docker 与 Compose 部署
+
+### 方式一：使用 Docker 直接构建运行
+
+```bash
+# 构建镜像
+docker build -t clipboard-server:latest .
+
+# 运行容器（绑定端口与数据卷）
+docker run -d \
+  --name clipboard-server \
+  -p 8000:8000 \
+  -e SECRET_KEY=please_change_me \
+  -e DATABASE_URL=sqlite:///data/clipboard.db \
+  -e TZ=Asia/Shanghai \
+  -v %cd%/uploads:/app/uploads \
+  -v %cd%/data:/app/data \
+  -v %cd%/static:/app/static:ro \
+  clipboard-server:latest
+```
+
+说明：
+- 若在 Linux/macOS，将上面的 `%cd%` 替换为 `$(pwd)`。
+- 默认使用 SQLite，数据库文件位于容器内 `/app/data/clipboard.db`。
+
+### 方式二：使用 docker-compose
+
+```bash
+# 启动
+docker compose up -d --build
+# 实时同步代码更改到容器中
+docker compose up --watch
+
+# 查看日志
+docker compose logs -f
+
+# 停止
+docker compose down
+```
+
+常用环境变量（也可在 `.env` 中设置）：
+- `SECRET_KEY`：JWT 密钥，生产环境务必改为随机值
+- `DATABASE_URL`：默认 `sqlite:///data/clipboard.db`
+- `TZ`：容器时区，例如 `Asia/Shanghai`
+
+服务暴露端口：`8000`，若与宿主机端口冲突，可在 `docker-compose.yml` 中调整为 `宿主:容器` 映射，例如 `18000:8000`。
 
 ## API 接口
 
@@ -68,8 +117,6 @@ clipboard_server/
 ### 剪贴板接口
 
 - `POST /clipboard` - 上传剪贴板内容
-- `GET /clipboard` - 获取剪贴板内容
-- `GET /clipboard/history` - 获取剪贴板历史
 
 ### 设备管理
 
@@ -88,10 +135,7 @@ clipboard_server/
 
 ### 2. 登录
 
-使用注册的邮箱和密码登录，同时需要提供设备信息：
-- 设备类型（选择您的设备类型）
-- 设备名称（可自定义或自动生成）
-- 设备ID（基于浏览器指纹自动生成，无需手动输入）
+使用注册的邮箱和密码登录。
 
 ### 3. 使用剪贴板同步
 
@@ -113,18 +157,17 @@ clipboard_server/
 
 ### 技术栈
 
-- **后端**：FastAPI + SQLAlchemy + SQLite
+- **后端**：FastAPI
 - **前端**：HTML5 + CSS3 + JavaScript
 - **认证**：JWT (JSON Web Tokens)
 - **实时通信**：WebSocket
-- **数据库**：SQLite
+- **数据库**：MySQL / SQLite
 
 ### 数据库模型
 
 - **User**：用户信息
 - **Device**：设备信息
 - **ClipboardItem**：剪贴板内容
-- **ClipboardHistory**：剪贴板历史
 
 ### 安全特性
 

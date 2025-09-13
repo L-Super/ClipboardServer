@@ -4,7 +4,6 @@ version = "0.1.0"
 description = "Clipboard sync API server"
 requires-python = ">=3.11"
 dependencies = [
-    "requests>=2.32.4", # client
     "fastapi>=0.116.1",
     "passlib[bcrypt]>=1.7.4",
     "pydantic-settings>=2.10.1",
@@ -16,4 +15,9 @@ dependencies = [
     "python-multipart>=0.0.20",
     "pymysql>=1.1.2",
     "cryptography>=45.0.6",
+]
+
+[project.optional-dependencies]
+test = [
+    "requests>=2.31.0"
 ]
