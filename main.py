@@ -457,7 +457,7 @@ async def notify_devices_of_update(user_id: str, source_device_id: str, item: mo
 
     # 向所有相关设备发送通知
     for device in devices:
-        log.info(f'notify user:{user_id} device:{device.id}')
+        log.info(f'notify user:{user_id}  from device:{source_device_id} to device:{device.id}')
         log.debug(f'send websocket message:{message}')
         await manager.send_personal_message(message, user_id, device.id)
 
