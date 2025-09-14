@@ -6,6 +6,7 @@ from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
 import crud
 import config
+import log
 from database import get_db
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -56,14 +57,14 @@ def decode_token(token):
         return user_id, device_id
     except ExpiredSignatureError as e:
         # exp 字段过期
-        print(f"jwt decode exception: {e}")
+        log.error(f"jwt decode exception: {e}", logger_name=__name__)
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Token has expired",
             headers={"WWW-Authenticate": "Bearer"},
         )
     except JWTError as e:
-        print(f"jwt decode exception: {e}")
+        log.error(f"jwt decode exception: {e}", logger_name=__name__)
         raise credentials_exception
 
 
