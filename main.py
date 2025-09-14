@@ -2,6 +2,7 @@ import mimetypes
 import os
 from datetime import datetime, timedelta, timezone
 
+import uvicorn
 from fastapi import FastAPI, HTTPException, status, Depends, WebSocket, WebSocketDisconnect, BackgroundTasks, \
     UploadFile, Form, File, Header
 from fastapi.staticfiles import StaticFiles
@@ -17,6 +18,7 @@ from database import get_db, create_db
 import models
 import auth
 import schemas
+import log
 
 UPLOAD_DIR = "uploads"
 
@@ -46,20 +48,26 @@ app = FastAPI(
 )
 
 # 挂载静态文件
-
 app.mount("/files", StaticFiles(directory="uploads", check_dir=False), name="files")
+app.mount("/static", StaticFiles(directory="static"), name="static")
 
 # WebSocket连接管理器
 manager = ConnectionManager()
-
-app.mount("/static", StaticFiles(directory="static"), name="static")
 
 
 # 应用程序启动前运行
 @app.on_event("startup")
 def on_startup():
+    log.setup_logging()
+
     # 创建数据库表
     create_db()
+
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    """应用关闭事件"""
+    log.info('app was shut down')
 
 
 # 根路由 - 返回登录页面
@@ -83,11 +91,11 @@ async def dashboard():
         return HTMLResponse(content=f.read())
 
 
-# # 设备指纹测试页面路由
-# @app.get("/test-fingerprint", response_class=HTMLResponse)
-# async def test_fingerprint():
-#     with open("static/test_fingerprint.html", "r", encoding="utf-8") as f:
-#         return HTMLResponse(content=f.read())
+# 设备指纹测试页面路由
+@app.get("/test-fingerprint", response_class=HTMLResponse)
+async def test_fingerprint():
+    with open("static/test_fingerprint.html", "r", encoding="utf-8") as f:
+        return HTMLResponse(content=f.read())
 
 
 def create_token(user_id: str, device_id: str) -> tuple[str, str]:
@@ -125,6 +133,8 @@ def register(user: schemas.UserCreate, db: Session = Depends(get_db)):
             detail="User registration failed"
         )
 
+    log.info(f"User {db_user.email} registered")
+
     return {
         "code": 0,
         "message": "User registration successfully"
@@ -160,6 +170,8 @@ def login(user: schemas.UserLogin, db: Session = Depends(get_db)):
 
     # 创建令牌
     access_token, refresh_token = create_token(db_user.id, device.id)
+
+    log.info(f"User {db_user.email} logged in")
 
     return {
         "access_token": access_token,
@@ -234,15 +246,8 @@ def get_devices(
         current_user: models.User = Depends(auth.get_current_user),
         db: Session = Depends(get_db)
 ):
-    """
-    TODO: 未验证
-    :param current_user:
-    :param db:
-    :return:
-    """
     devices = db.query(models.Device).filter(
-        models.Device.user_id == current_user.id,
-        models.Device.is_active == True
+        models.Device.user_id == current_user.id
     ).all()
     return devices
 
@@ -254,14 +259,6 @@ def rename_device(
         current_user: models.User = Depends(auth.get_current_user),
         db: Session = Depends(get_db)
 ):
-    """
-    TODO: 未验证
-    :param device_id:
-    :param new_name:
-    :param current_user:
-    :param db:
-    :return:
-    """
     device = db.query(models.Device).filter(
         models.Device.id == device_id,
         models.Device.user_id == current_user.id
@@ -275,7 +272,7 @@ def rename_device(
 
     device.name = new_name
     db.commit()
-    return {"message": "Device renamed successfully"}
+    return {"code": 0, "message": "Device renamed successfully"}
 
 
 @app.delete("/devices/{device_id}")
@@ -302,10 +299,14 @@ def delete_device(
             detail="Device not found"
         )
 
-    # 软删除设备
-    device.is_active = False
+    # 先删除子表数据（外键约束所在表）
+    db.query(models.ClipboardItem).filter(
+        models.ClipboardItem.device_id == device_id
+    ).delete(synchronize_session=False)
+    # 再删除父表数据
+    db.delete(device)
     db.commit()
-    return {"message": "Device deactivated successfully"}
+    return {"code": 0, "message": "Device delete successfully"}
 
 
 # 上传剪贴板内容
@@ -326,8 +327,6 @@ async def upload_clipboard_item(background_tasks: BackgroundTasks,
         file_path = save_upload_file(file)
         file_url = get_file_url(file_path)
 
-        print(f'file path:{file_path} url:{file_url}')
-
         content = file_url
         content_type = file.content_type or mimetypes.guess_type(file.filename)[0]
         meta = {
@@ -335,7 +334,7 @@ async def upload_clipboard_item(background_tasks: BackgroundTasks,
             "content_type": content_type,
             "size": file.size,
         }
-        print(f'file name:{file.filename} type:{file.content_type} size:{file.size}')
+        log.info(f'file name:{file.filename} type:{file.content_type} size:{file.size} path:{file_path} url:{file_url}')
     else:
         content = data
 
@@ -388,12 +387,12 @@ async def websocket_endpoint(
         user_id: str = payload.get("sub")
         device_id: str = payload.get("device_id")
         if not user_id or not device_id:
-            print(f'user:{user_id} or device:{device_id} not found in token')
+            log.error(f'user:{user_id} or device:{device_id} not found in token')
             # WS_1008_POLICY_VIOLATION: 由于收到不符合约定的数据而断开连接。
             await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
             return
     except JWTError:
-        print(f'verify token failed. token: {token}')
+        log.error(f'verify token failed. token: {token}')
         await websocket.close(code=3000, reason='token expired')
         return
 
@@ -414,11 +413,11 @@ async def websocket_endpoint(
     try:
         while True:
             data = await websocket.receive_text()
-            print('received message:', data)
+            log.debug('received message:', data)
             # 客户端可以发送心跳或其他控制消息
             # 在此实现中我们主要处理服务器推送
-    except WebSocketDisconnect:
-        print(f'user: {user_id} device: {device_id} websocket offline')
+    except WebSocketDisconnect as e:
+        log.warning(f'user: {user_id} device: {device_id} websocket offline. reason: {e}')
         # 断开时，将数据库里的device的is_active状态置为false
         device = db.query(models.Device).filter(
             models.Device.id == device_id,
@@ -429,8 +428,8 @@ async def websocket_endpoint(
             db.commit()
         manager.disconnect(user_id, device_id)
 
-    except:
-        print(f'user: {user_id} device: {device_id} websocket except')
+    except Exception as e:
+        log.error(f'user: {user_id} device: {device_id} websocket except. reason: {e}')
         manager.disconnect(user_id, device_id)
 
 
@@ -446,7 +445,7 @@ async def notify_devices_of_update(user_id: str, source_device_id: str, item: mo
     if not devices:
         return
 
-    print('notify devices of update. device count:', len(devices))
+    log.info('notify devices of update. device count:', len(devices))
     # 准备通知消息
     message = schemas.WebSocketMessage(
         action="update",
@@ -458,8 +457,8 @@ async def notify_devices_of_update(user_id: str, source_device_id: str, item: mo
 
     # 向所有相关设备发送通知
     for device in devices:
-        print(f'notify user:{user_id} device:{device.id}')
-        print(f'send websocket message:{message}')
+        log.info(f'notify user:{user_id} device:{device.id}')
+        log.debug(f'send websocket message:{message}')
         await manager.send_personal_message(message, user_id, device.id)
 
 
@@ -479,7 +478,7 @@ async def http_exception_handler(request, exc):
 
 # 启动应用
 if __name__ == "__main__":
-    # uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
-    if not os.path.exists(UPLOAD_DIR):
-        os.makedirs(UPLOAD_DIR)
-    pass
+    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
+    # if not os.path.exists(UPLOAD_DIR):
+    #     os.makedirs(UPLOAD_DIR)
+    # pass
