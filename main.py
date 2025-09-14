@@ -438,7 +438,7 @@ async def notify_devices_of_update(user_id: str, source_device_id: str, item: mo
     if not devices:
         return
 
-    log.info('notify devices of update. device count:', len(devices))
+    log.info(f'notify devices of update. device count: {len(devices)}')
     # 准备通知消息
     message = schemas.WebSocketMessage(
         action="update",
