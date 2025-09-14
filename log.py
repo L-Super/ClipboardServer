@@ -52,6 +52,9 @@ class LoggingConfig:
             file_handler.setFormatter(formatter)
             root_logger.addHandler(file_handler)
 
+        root_logger.info(
+            f'Init log. level: {self.log_level} enable console: {self.enable_console} enable file: {self.enable_file}')
+
 
 def get_logger(name: str) -> logging.Logger:
     """获取指定名称的日志记录器"""
