@@ -9,9 +9,8 @@ services:
       - path: ./.env
     volumes:
       # - ./.env:/app/.env
-      # - ./static:/app/static:ro
       - ./uploads:/app/uploads
-      - ./logs/:/app/logs
+      - ./logs:/app/logs
     develop:
       # 创建一个 `watch` 来更新应用程序
       watch:
