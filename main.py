@@ -281,13 +281,6 @@ def delete_device(
         current_user: models.User = Depends(auth.get_current_user),
         db: Session = Depends(get_db)
 ):
-    """
-    TODO:未验证
-    :param device_id:
-    :param current_user:
-    :param db:
-    :return:
-    """
     device = db.query(models.Device).filter(
         models.Device.id == device_id,
         models.Device.user_id == current_user.id
