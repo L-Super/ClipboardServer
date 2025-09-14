@@ -67,7 +67,7 @@ def on_startup():
 @app.on_event("shutdown")
 async def shutdown_event():
     """应用关闭事件"""
-    log.info('app was shut down')
+    log.info('App was shut down')
 
 
 # 根路由 - 返回登录页面
@@ -327,7 +327,7 @@ async def upload_clipboard_item(background_tasks: BackgroundTasks,
             "content_type": content_type,
             "size": file.size,
         }
-        log.info(f'file name:{file.filename} type:{file.content_type} size:{file.size} path:{file_path} url:{file_url}')
+        log.info(f'Received image or file. file name:{file.filename} type:{file.content_type} size:{file.size} path:{file_path} url:{file_url}')
     else:
         content = data
 
@@ -406,7 +406,7 @@ async def websocket_endpoint(
     try:
         while True:
             data = await websocket.receive_text()
-            log.debug('received message:', data)
+            log.debug(f'received message: {data}')
             # 客户端可以发送心跳或其他控制消息
             # 在此实现中我们主要处理服务器推送
     except WebSocketDisconnect as e:
@@ -438,7 +438,7 @@ async def notify_devices_of_update(user_id: str, source_device_id: str, item: mo
     if not devices:
         return
 
-    log.info(f'notify devices of update. device count: {len(devices)}')
+    log.info(f'Notify devices of update. device count: {len(devices)}')
     # 准备通知消息
     message = schemas.WebSocketMessage(
         action="update",
@@ -450,8 +450,8 @@ async def notify_devices_of_update(user_id: str, source_device_id: str, item: mo
 
     # 向所有相关设备发送通知
     for device in devices:
-        log.info(f'notify user:{user_id}  from device:{source_device_id} to device:{device.id}')
-        log.debug(f'send websocket message:{message}')
+        log.info(f'Notify user:{user_id}  from device:{source_device_id} to device:{device.id}')
+        log.debug(f'Send websocket message:{message}')
         await manager.send_personal_message(message, user_id, device.id)
 
 
