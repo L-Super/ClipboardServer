@@ -109,6 +109,24 @@
             box-shadow: 0 10px 20px rgba(244, 67, 54, 0.3);
         }
     
+        .retry-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-right: 12px;
+        }
+
+        .retry-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+
     </style>
 </head>
 <body>
@@ -148,6 +166,9 @@
             </div>
             
             <div style="text-align: center;">
+                <button class="retry-btn" onclick="retryOpenClient()">
+                    <i class="fas fa-rocket"></i> 重试唤起客户端
+                </button>
                 <button class="logout-btn" onclick="logout()">
                     <i class="fas fa-sign-out-alt"></i> 退出登录
                 </button>
@@ -192,6 +213,25 @@
             localStorage.removeItem('access_token');
             localStorage.removeItem('refresh_token');
             window.location.href = '/';
+        }
+
+        // 重试打开客户端
+        function retryOpenClient() {
+            try {
+                const token = localStorage.getItem('access_token');
+                const email = localStorage.getItem('login_email');
+                const deviceName = localStorage.getItem('login_device_name') || '';
+
+                if (!token || !email) {
+                    alert('缺少登录信息，请返回登录页重新登录。');
+                    return;
+                }
+
+                const url = `qclipboard://login?email=${encodeURIComponent(email)}&token=${encodeURIComponent(token)}&device_name=${encodeURIComponent(deviceName)}`;
+                window.location.href = url;
+            } catch (e) {
+                console.error('重试打开客户端失败:', e);
+            }
         }
         
         // 定期检查token有效性
