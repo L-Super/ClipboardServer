@@ -219,8 +219,8 @@
         function retryOpenClient() {
             try {
                 const token = localStorage.getItem('access_token');
-                const email = localStorage.getItem('login_email');
-                const deviceName = localStorage.getItem('login_device_name') || '';
+                const email = localStorage.getItem('email');
+                const deviceName = localStorage.getItem('device_name') || '';
 
                 if (!token || !email) {
                     alert('缺少登录信息，请返回登录页重新登录。');

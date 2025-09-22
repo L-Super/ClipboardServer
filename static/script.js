@@ -176,8 +176,8 @@ async function handleLogin(e) {
             // 保存token到localStorage
             localStorage.setItem('access_token', data.access_token);
             localStorage.setItem('refresh_token', data.refresh_token);
-            localStorage.setItem('login_email', email);
-            localStorage.setItem('login_device_name', deviceName);
+            localStorage.setItem('email', email);
+            localStorage.setItem('device_name', deviceName);
 
             let protocol_url = `qclipboard://login?email=${encodeURIComponent(email)}&token=${encodeURIComponent(data.access_token)}&device_name=${encodeURIComponent(deviceName)}`
             try {
