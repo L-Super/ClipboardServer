@@ -93,7 +93,7 @@ async def get_current_active_device(
             headers={"WWW-Authenticate": "Bearer"},
         )
 
-    # 更新设备最后活动时间
+    # 更新设备最后活动时间（不在依赖中提交，让端点处理提交）
     device.last_active = datetime.now(timezone.utc)
-    db.commit()
+    db.flush()
     return device

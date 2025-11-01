@@ -14,7 +14,7 @@ from starlette.responses import JSONResponse
 import crud
 from config import settings
 from connection_manager import ConnectionManager
-from database import get_db, create_db
+from database import get_db, get_db_context, create_db
 import models
 import auth
 import schemas
@@ -388,20 +388,22 @@ async def websocket_endpoint(
         return
 
     # 检查设备是否存在 - 使用临时会话
-    db = next(get_db())
     try:
-        device = db.query(models.Device).filter(
-            models.Device.id == device_id,
-            models.Device.user_id == user_id
-        ).first()
+        with get_db_context() as db:
+            device = db.query(models.Device).filter(
+                models.Device.id == device_id,
+                models.Device.user_id == user_id
+            ).first()
 
-        if not device:
-            await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
-            return
+            if not device:
+                await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
+                return
 
-        crud.activate_device(db, device_id)
-    finally:
-        db.close()
+            crud.activate_device(db, device_id)
+    except Exception as e:
+        log.error(f'Error checking device in WebSocket: {e}')
+        await websocket.close(code=status.WS_1011_INTERNAL_ERROR)
+        return
 
     # 连接WebSocket
     await manager.connect(websocket, user_id, device_id)
@@ -414,57 +416,57 @@ async def websocket_endpoint(
             # 在此实现中我们主要处理服务器推送
     except WebSocketDisconnect as e:
         log.warning(f'user: {user_id} device: {device_id} websocket offline. reason: {e}')
-        # 断开时，将数据库里的device的is_active状态置为false - 使用临时会话
-        db = next(get_db())
-        try:
-            device = db.query(models.Device).filter(
-                models.Device.id == device_id,
-                models.Device.user_id == user_id
-            ).first()
-            if device:
-                device.is_active = False
-                db.commit()
-        finally:
-            db.close()
-        manager.disconnect(user_id, device_id)
-
     except Exception as e:
         log.error(f'user: {user_id} device: {device_id} websocket except. reason: {e}')
-        manager.disconnect(user_id, device_id)
+    finally:
+        # 断开时，将数据库里的device的is_active状态置为false - 使用临时会话
+        try:
+            with get_db_context() as db:
+                device = db.query(models.Device).filter(
+                    models.Device.id == device_id,
+                    models.Device.user_id == user_id
+                ).first()
+                if device:
+                    device.is_active = False
+                    db.commit()
+        except Exception as e:
+            log.error(f'Failed to deactivate device {device_id}: {e}')
+        finally:
+            manager.disconnect(user_id, device_id)
 
 
 # 通知其他设备有新内容
 async def notify_devices_of_update(user_id: str, source_device_id: str, item: models.ClipboardItem):
     # 创建新的数据库会话用于后台任务
-    db = next(get_db())
     try:
-        # 获取当前用户的所有活动设备（除了源设备）
-        devices = db.query(models.Device).filter(
-            models.Device.user_id == user_id,
-            models.Device.id != source_device_id,
-            models.Device.is_active == True
-        ).all()
+        with get_db_context() as db:
+            # 获取当前用户的所有活动设备（除了源设备）
+            devices = db.query(models.Device).filter(
+                models.Device.user_id == user_id,
+                models.Device.id != source_device_id,
+                models.Device.is_active == True
+            ).all()
 
-        if not devices:
-            return
+            if not devices:
+                return
 
-        log.info(f'Notify devices of update. device count: {len(devices)}')
-        # 准备通知消息
-        message = schemas.WebSocketMessage(
-            action="update",
-            type=item.item_type,
-            data=item.content,
-            data_hash=item.content_hash,
-            meta=item.meta_data or {}
-        ).model_dump_json()
+            log.info(f'Notify devices of update. device count: {len(devices)}')
+            # 准备通知消息
+            message = schemas.WebSocketMessage(
+                action="update",
+                type=item.item_type,
+                data=item.content,
+                data_hash=item.content_hash,
+                meta=item.meta_data or {}
+            ).model_dump_json()
 
-        # 向所有相关设备发送通知
-        for device in devices:
-            log.info(f'Notify user:{user_id}  from device:{source_device_id} to device:{device.id}')
-            log.debug(f'Send websocket message:{message}')
-            await manager.send_personal_message(message, user_id, device.id)
-    finally:
-        db.close()
+            # 向所有相关设备发送通知
+            for device in devices:
+                log.info(f'Notify user:{user_id}  from device:{source_device_id} to device:{device.id}')
+                log.debug(f'Send websocket message:{message}')
+                await manager.send_personal_message(message, user_id, device.id)
+    except Exception as e:
+        log.error(f'Error notifying devices: {e}')
 
 
 # 错误处理
