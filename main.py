@@ -411,6 +411,9 @@ async def websocket_endpoint(
             # 在此实现中我们主要处理服务器推送
     except WebSocketDisconnect as e:
         log.warning(f'user: {user_id} device: {device_id} websocket offline. reason: {e}')
+    except Exception as e:
+        log.error(f'user: {user_id} device: {device_id} websocket except. reason: {e}')
+    finally:
         # 断开时，将数据库里的device的is_active状态置为false
         async with get_db() as db:
             device = db.query(models.Device).filter(
@@ -421,10 +424,6 @@ async def websocket_endpoint(
                 device.is_active = False
                 db.commit()
 
-        manager.disconnect(user_id, device_id)
-
-    except Exception as e:
-        log.error(f'user: {user_id} device: {device_id} websocket except. reason: {e}')
         manager.disconnect(user_id, device_id)
 
 

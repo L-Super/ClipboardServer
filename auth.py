@@ -95,5 +95,5 @@ async def get_current_active_device(
 
     # 更新设备最后活动时间
     device.last_active = datetime.now(timezone.utc)
-    db.commit()
+    db.flush()
     return device
