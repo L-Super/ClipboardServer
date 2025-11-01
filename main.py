@@ -345,8 +345,7 @@ async def upload_clipboard_item(background_tasks: BackgroundTasks,
         notify_devices_of_update,
         current_user.id,
         current_device.id,
-        db_item,
-        db
+        db_item
     )
 
     if type in ("image", "file"):
@@ -371,8 +370,7 @@ async def upload_clipboard_item(background_tasks: BackgroundTasks,
 @app.websocket("/sync/notify")
 async def websocket_endpoint(
         websocket: WebSocket,
-        token: str,
-        db: Session = Depends(get_db)
+        token: str
 ):
     # 验证token
     try:
@@ -389,17 +387,22 @@ async def websocket_endpoint(
         await websocket.close(code=3000, reason='token expired')
         return
 
-    # 检查设备是否存在
-    device = db.query(models.Device).filter(
-        models.Device.id == device_id,
-        models.Device.user_id == user_id
-    ).first()
+    # 检查设备是否存在 - 使用临时会话
+    db = next(get_db())
+    try:
+        device = db.query(models.Device).filter(
+            models.Device.id == device_id,
+            models.Device.user_id == user_id
+        ).first()
 
-    if not device:
-        await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
-        return
+        if not device:
+            await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
+            return
 
-    crud.activate_device(db, device_id)
+        crud.activate_device(db, device_id)
+    finally:
+        db.close()
+
     # 连接WebSocket
     await manager.connect(websocket, user_id, device_id)
 
@@ -411,14 +414,18 @@ async def websocket_endpoint(
             # 在此实现中我们主要处理服务器推送
     except WebSocketDisconnect as e:
         log.warning(f'user: {user_id} device: {device_id} websocket offline. reason: {e}')
-        # 断开时，将数据库里的device的is_active状态置为false
-        device = db.query(models.Device).filter(
-            models.Device.id == device_id,
-            models.Device.user_id == user_id
-        ).first()
-        if device:
-            device.is_active = False
-            db.commit()
+        # 断开时，将数据库里的device的is_active状态置为false - 使用临时会话
+        db = next(get_db())
+        try:
+            device = db.query(models.Device).filter(
+                models.Device.id == device_id,
+                models.Device.user_id == user_id
+            ).first()
+            if device:
+                device.is_active = False
+                db.commit()
+        finally:
+            db.close()
         manager.disconnect(user_id, device_id)
 
     except Exception as e:
@@ -427,32 +434,37 @@ async def websocket_endpoint(
 
 
 # 通知其他设备有新内容
-async def notify_devices_of_update(user_id: str, source_device_id: str, item: models.ClipboardItem, db: Session):
-    # 获取当前用户的所有活动设备（除了源设备）
-    devices = db.query(models.Device).filter(
-        models.Device.user_id == user_id,
-        models.Device.id != source_device_id,
-        models.Device.is_active == True
-    ).all()
+async def notify_devices_of_update(user_id: str, source_device_id: str, item: models.ClipboardItem):
+    # 创建新的数据库会话用于后台任务
+    db = next(get_db())
+    try:
+        # 获取当前用户的所有活动设备（除了源设备）
+        devices = db.query(models.Device).filter(
+            models.Device.user_id == user_id,
+            models.Device.id != source_device_id,
+            models.Device.is_active == True
+        ).all()
 
-    if not devices:
-        return
+        if not devices:
+            return
 
-    log.info(f'Notify devices of update. device count: {len(devices)}')
-    # 准备通知消息
-    message = schemas.WebSocketMessage(
-        action="update",
-        type=item.item_type,
-        data=item.content,
-        data_hash=item.content_hash,
-        meta=item.meta_data or {}
-    ).model_dump_json()
+        log.info(f'Notify devices of update. device count: {len(devices)}')
+        # 准备通知消息
+        message = schemas.WebSocketMessage(
+            action="update",
+            type=item.item_type,
+            data=item.content,
+            data_hash=item.content_hash,
+            meta=item.meta_data or {}
+        ).model_dump_json()
 
-    # 向所有相关设备发送通知
-    for device in devices:
-        log.info(f'Notify user:{user_id}  from device:{source_device_id} to device:{device.id}')
-        log.debug(f'Send websocket message:{message}')
-        await manager.send_personal_message(message, user_id, device.id)
+        # 向所有相关设备发送通知
+        for device in devices:
+            log.info(f'Notify user:{user_id}  from device:{source_device_id} to device:{device.id}')
+            log.debug(f'Send websocket message:{message}')
+            await manager.send_personal_message(message, user_id, device.id)
+    finally:
+        db.close()
 
 
 # 错误处理
