@@ -387,9 +387,8 @@ async def websocket_endpoint(
         await websocket.close(code=3000, reason='token expired')
         return
 
-    # 检查设备是否存在 - 使用临时会话
-    db = next(get_db())
-    try:
+    # 检查设备是否存在
+    async with get_db() as db:
         device = db.query(models.Device).filter(
             models.Device.id == device_id,
             models.Device.user_id == user_id
@@ -400,8 +399,6 @@ async def websocket_endpoint(
             return
 
         crud.activate_device(db, device_id)
-    finally:
-        db.close()
 
     # 连接WebSocket
     await manager.connect(websocket, user_id, device_id)
@@ -414,9 +411,8 @@ async def websocket_endpoint(
             # 在此实现中我们主要处理服务器推送
     except WebSocketDisconnect as e:
         log.warning(f'user: {user_id} device: {device_id} websocket offline. reason: {e}')
-        # 断开时，将数据库里的device的is_active状态置为false - 使用临时会话
-        db = next(get_db())
-        try:
+        # 断开时，将数据库里的device的is_active状态置为false
+        async with get_db() as db:
             device = db.query(models.Device).filter(
                 models.Device.id == device_id,
                 models.Device.user_id == user_id
@@ -424,8 +420,7 @@ async def websocket_endpoint(
             if device:
                 device.is_active = False
                 db.commit()
-        finally:
-            db.close()
+
         manager.disconnect(user_id, device_id)
 
     except Exception as e:
@@ -436,8 +431,7 @@ async def websocket_endpoint(
 # 通知其他设备有新内容
 async def notify_devices_of_update(user_id: str, source_device_id: str, item: models.ClipboardItem):
     # 创建新的数据库会话用于后台任务
-    db = next(get_db())
-    try:
+    async with get_db() as db:
         # 获取当前用户的所有活动设备（除了源设备）
         devices = db.query(models.Device).filter(
             models.Device.user_id == user_id,
@@ -463,8 +457,6 @@ async def notify_devices_of_update(user_id: str, source_device_id: str, item: mo
             log.info(f'Notify user:{user_id}  from device:{source_device_id} to device:{device.id}')
             log.debug(f'Send websocket message:{message}')
             await manager.send_personal_message(message, user_id, device.id)
-    finally:
-        db.close()
 
 
 # 错误处理
