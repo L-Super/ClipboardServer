@@ -5,7 +5,7 @@ description = "Clipboard sync API server"
 requires-python = ">=3.11"
 dependencies = [
     "fastapi>=0.116.1",
-    "passlib[bcrypt]>=1.7.4",
+    "bcrypt==5.0.0",
     "pydantic-settings>=2.10.1",
     "pydantic[email]>=2.11.7",
     "python-jose>=3.5.0",
