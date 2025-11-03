@@ -14,7 +14,7 @@ from starlette.responses import JSONResponse
 import crud
 from config import settings
 from connection_manager import ConnectionManager
-from database import get_db, create_db
+from database import get_db, create_db, get_db_context
 import models
 import auth
 import schemas
@@ -388,7 +388,7 @@ async def websocket_endpoint(
         return
 
     # 检查设备是否存在
-    async with get_db() as db:
+    with get_db_context() as db:
         device = db.query(models.Device).filter(
             models.Device.id == device_id,
             models.Device.user_id == user_id
@@ -415,7 +415,7 @@ async def websocket_endpoint(
         log.error(f'user: {user_id} device: {device_id} websocket except. reason: {e}')
     finally:
         # 断开时，将数据库里的device的is_active状态置为false
-        async with get_db() as db:
+        with get_db_context() as db:
             device = db.query(models.Device).filter(
                 models.Device.id == device_id,
                 models.Device.user_id == user_id
@@ -423,14 +423,14 @@ async def websocket_endpoint(
             if device:
                 device.is_active = False
                 db.commit()
-
+        log.info(f'websocket diconnected.')
         manager.disconnect(user_id, device_id)
 
 
 # 通知其他设备有新内容
 async def notify_devices_of_update(user_id: str, source_device_id: str, item: models.ClipboardItem):
     # 创建新的数据库会话用于后台任务
-    async with get_db() as db:
+    with get_db_context() as db:
         # 获取当前用户的所有活动设备（除了源设备）
         devices = db.query(models.Device).filter(
             models.Device.user_id == user_id,
