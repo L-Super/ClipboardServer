@@ -16,4 +16,5 @@ EXPOSE 8000
 RUN mkdir -p /app/logs
 
 # If running behind a proxy like Nginx or Traefik add --proxy-headers
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--proxy-headers", "--log-config", "uvicorn_log.json"]
+# "--forwarded-allow-ips *" to trust any IP addresses
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--proxy-headers", "--forwarded-allow-ips", "*", "--log-config", "uvicorn_log.json"]
