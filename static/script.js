@@ -179,7 +179,8 @@ async function handleLogin(e) {
             localStorage.setItem('email', email);
             localStorage.setItem('device_name', deviceName);
 
-            let protocol_url = `floward://login?email=${encodeURIComponent(email)}&token=${encodeURIComponent(data.access_token)}&device_name=${encodeURIComponent(deviceName)}`
+            const apiUrl = `${window.location.origin}`;
+            let protocol_url = `floward://login?email=${encodeURIComponent(email)}&token=${encodeURIComponent(data.access_token)}&device_name=${encodeURIComponent(deviceName)}&api_url=${encodeURIComponent(apiUrl)}`
             try {
                 window.location.href = protocol_url;
             } catch (error) {

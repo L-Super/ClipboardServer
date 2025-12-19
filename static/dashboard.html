@@ -13,23 +13,23 @@
             margin: 0 auto;
             padding: 40px 20px;
         }
-        
+
         .dashboard-header {
             text-align: center;
             margin-bottom: 40px;
         }
-        
+
         .dashboard-header h1 {
             color: white;
             font-size: 32px;
             margin-bottom: 10px;
         }
-        
+
         .dashboard-header p {
             color: rgba(255, 255, 255, 0.8);
             font-size: 16px;
         }
-        
+
         .dashboard-card {
             background: rgba(255, 255, 255, 0.95);
             backdrop-filter: blur(10px);
@@ -39,23 +39,23 @@
             box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
             border: 1px solid rgba(255, 255, 255, 0.2);
         }
-        
+
         .welcome-message {
             text-align: center;
             margin-bottom: 30px;
         }
-        
+
         .welcome-message h2 {
             color: #333;
             font-size: 24px;
             margin-bottom: 10px;
         }
-        
+
         .welcome-message p {
             color: #666;
             font-size: 16px;
         }
-        
+
         .device-info {
             display: grid;
             grid-template-columns: repeat(2, 1fr);;
@@ -67,31 +67,31 @@
                 grid-template-columns: 1fr;
             }
         }
-        
+
         .info-item {
             text-align: center;
             padding: 20px;
             background: #f8f9fa;
             border-radius: 10px;
         }
-        
+
         .info-item i {
             font-size: 24px;
             color: #667eea;
             margin-bottom: 10px;
         }
-        
+
         .info-item h3 {
             color: #333;
             font-size: 16px;
             margin-bottom: 5px;
         }
-        
+
         .info-item p {
             color: #666;
             font-size: 14px;
         }
-        
+
         .logout-btn {
             background: linear-gradient(135deg, #f44336 0%, #d32f2f 100%);
             color: white;
@@ -103,12 +103,12 @@
             cursor: pointer;
             transition: all 0.3s ease;
         }
-        
+
         .logout-btn:hover {
             transform: translateY(-2px);
             box-shadow: 0 10px 20px rgba(244, 67, 54, 0.3);
         }
-    
+
         .retry-btn {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
@@ -135,13 +135,13 @@
             <h1>Floward 剪贴板同步</h1>
             <p>欢迎使用跨设备剪贴板同步服务</p>
         </div>
-        
+
         <div class="dashboard-card">
             <div class="welcome-message">
                 <h2>登录成功！</h2>
                 <p>您已成功连接到 Floward 同步服务</p>
             </div>
-            
+
             <div class="device-info">
                 <div class="info-item">
                     <i class="fas fa-user"></i>
@@ -164,7 +164,7 @@
                     <p id="connectionStatus">已连接</p>
                 </div>
             </div>
-            
+
             <div style="text-align: center;">
                 <button class="retry-btn" onclick="retryOpenClient()">
                     <i class="fas fa-rocket"></i> 重试唤起客户端
@@ -174,7 +174,7 @@
                 </button>
             </div>
         </div>
-        
+
     </div>
 
     <script>
@@ -185,7 +185,7 @@
                 window.location.href = '/';
                 return;
             }
-            
+
             // 解析JWT token获取用户信息
             try {
                 const payload = JSON.parse(atob(token.split('.')[1]));
@@ -207,7 +207,7 @@
                 document.getElementById('loginTime').textContent = '解析失败';
             }
         });
-        
+
         // 退出登录
         function logout() {
             localStorage.removeItem('access_token');
@@ -227,13 +227,14 @@
                     return;
                 }
 
-                const url = `floward://login?email=${encodeURIComponent(email)}&token=${encodeURIComponent(token)}&device_name=${encodeURIComponent(deviceName)}`;
+                const apiUrl = `${window.location.origin}`;
+                const url = `floward://login?email=${encodeURIComponent(email)}&token=${encodeURIComponent(token)}&device_name=${encodeURIComponent(deviceName)}&api_url=${encodeURIComponent(apiUrl)}`
                 window.location.href = url;
             } catch (e) {
                 console.error('重试打开客户端失败:', e);
             }
         }
-        
+
         // 定期检查token有效性
         setInterval(function() {
             const token = localStorage.getItem('access_token');
@@ -241,11 +242,11 @@
                 window.location.href = '/';
                 return;
             }
-            
+
             try {
                 const payload = JSON.parse(atob(token.split('.')[1]));
                 const exp = payload.exp * 1000; // 转换为毫秒
-                
+
                 if (Date.now() >= exp) {
                     // Token已过期
                     localStorage.removeItem('access_token');
