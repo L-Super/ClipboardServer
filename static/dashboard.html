@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>QClipboard Sync - 仪表板</title>
+    <title>Floward Sync - 仪表板</title>
     <link rel="shortcut icon" href="/static/favicon.ico">
     <link rel="stylesheet" href="/static/style.css">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
@@ -132,14 +132,14 @@
 <body>
     <div class="dashboard-container">
         <div class="dashboard-header">
-            <h1>QClipboard 剪贴板同步</h1>
+            <h1>Floward 剪贴板同步</h1>
             <p>欢迎使用跨设备剪贴板同步服务</p>
         </div>
         
         <div class="dashboard-card">
             <div class="welcome-message">
                 <h2>登录成功！</h2>
-                <p>您已成功连接到 QClipboard 同步服务</p>
+                <p>您已成功连接到 Floward 同步服务</p>
             </div>
             
             <div class="device-info">
@@ -227,7 +227,7 @@
                     return;
                 }
 
-                const url = `qclipboard://login?email=${encodeURIComponent(email)}&token=${encodeURIComponent(token)}&device_name=${encodeURIComponent(deviceName)}`;
+                const url = `floward://login?email=${encodeURIComponent(email)}&token=${encodeURIComponent(token)}&device_name=${encodeURIComponent(deviceName)}`;
                 window.location.href = url;
             } catch (e) {
                 console.error('重试打开客户端失败:', e);

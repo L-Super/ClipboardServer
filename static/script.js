@@ -179,7 +179,7 @@ async function handleLogin(e) {
             localStorage.setItem('email', email);
             localStorage.setItem('device_name', deviceName);
 
-            let protocol_url = `qclipboard://login?email=${encodeURIComponent(email)}&token=${encodeURIComponent(data.access_token)}&device_name=${encodeURIComponent(deviceName)}`
+            let protocol_url = `floward://login?email=${encodeURIComponent(email)}&token=${encodeURIComponent(data.access_token)}&device_name=${encodeURIComponent(deviceName)}`
             try {
                 window.location.href = protocol_url;
             } catch (error) {
