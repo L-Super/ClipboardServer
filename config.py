@@ -19,6 +19,14 @@ class Settings(BaseSettings):
     LOG_ENABLE_CONSOLE: bool = True
     LOG_ENABLE_FILE: bool = True
 
+    # email config
+    SMTP_HOST: str = "smtp.qq.com"
+    SMTP_PORT: int = 587
+    SMTP_USER: str = ""
+    SMTP_PASSWORD: str = ""
+    SMTP_FROM_EMAIL: str = ""
+    EMAIL_CODE_EXPIRE_MINUTES: int = 5  # 验证码有效期（分钟）
+
     # use env file to get var
     class Config:
         env_file = ".env"

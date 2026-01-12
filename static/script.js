@@ -1,5 +1,7 @@
 // 全局变量
 let currentForm = 'login';
+let currentLoginMethod = 'password'; // 'password' 或 'code'
+let codeCountdown = 0; // 验证码倒计时
 
 // 页面加载完成后初始化
 document.addEventListener('DOMContentLoaded', function () {
@@ -27,6 +29,35 @@ function switchForm(formType) {
         registerForm.classList.remove('active');
         loginForm.classList.add('active');
         currentForm = 'login';
+    }
+}
+
+// 切换登录方式
+function switchLoginMethod(method) {
+    currentLoginMethod = method;
+    const passwordBtn = document.getElementById('passwordLoginBtn');
+    const codeBtn = document.getElementById('codeLoginBtn');
+    const passwordArea = document.getElementById('passwordLoginArea');
+    const codeArea = document.getElementById('codeLoginArea');
+    const passwordInput = document.getElementById('loginPassword');
+    const codeInput = document.getElementById('loginCode');
+    
+    if (method === 'password') {
+        passwordBtn.classList.add('active');
+        codeBtn.classList.remove('active');
+        passwordArea.style.display = 'block';
+        codeArea.style.display = 'none';
+        passwordInput.required = true;
+        codeInput.required = false;
+        codeInput.value = '';
+    } else {
+        passwordBtn.classList.remove('active');
+        codeBtn.classList.add('active');
+        passwordArea.style.display = 'none';
+        codeArea.style.display = 'block';
+        passwordInput.required = false;
+        codeInput.required = true;
+        passwordInput.value = '';
     }
 }
 
@@ -134,6 +165,87 @@ function setButtonLoading(button, loading) {
     }
 }
 
+// 发送验证码
+async function sendVerificationCode() {
+    const email = document.getElementById('loginEmail').value;
+    const sendBtn = document.getElementById('sendCodeBtn');
+    
+    // 验证邮箱格式
+    if (!email) {
+        showMessage('请先输入邮箱地址', 'error');
+        return;
+    }
+    
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+        showMessage('请输入有效的邮箱地址', 'error');
+        return;
+    }
+    
+    // 如果正在倒计时，不允许重复发送
+    if (codeCountdown > 0) {
+        return;
+    }
+    
+    // 设置按钮加载状态
+    const btnText = sendBtn.querySelector('.btn-text');
+    const originalText = btnText.textContent;
+    sendBtn.disabled = true;
+    btnText.textContent = '发送中...';
+    
+    try {
+        const response = await fetch('/auth/send-verification-code', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                email: email
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok) {
+            showMessage('验证码已发送，请查收邮件', 'success');
+            // 开始倒计时
+            startCodeCountdown();
+        } else {
+            const errorMsg = data.detail || (data.error && data.error.message) || '发送验证码失败';
+            showMessage(errorMsg, 'error');
+            // 恢复按钮状态
+            sendBtn.disabled = false;
+            btnText.textContent = originalText;
+        }
+    } catch (error) {
+        console.error('发送验证码错误:', error);
+        showMessage('网络错误，请稍后重试', 'error');
+        // 恢复按钮状态
+        sendBtn.disabled = false;
+        btnText.textContent = originalText;
+    }
+}
+
+// 验证码倒计时
+function startCodeCountdown() {
+    codeCountdown = 60; // 60秒倒计时
+    const sendBtn = document.getElementById('sendCodeBtn');
+    const btnText = sendBtn.querySelector('.btn-text');
+    
+    sendBtn.disabled = true;
+    
+    const timer = setInterval(() => {
+        codeCountdown--;
+        if (codeCountdown > 0) {
+            btnText.textContent = `${codeCountdown}秒后重发`;
+        } else {
+            clearInterval(timer);
+            btnText.textContent = '发送验证码';
+            sendBtn.disabled = false;
+        }
+    }, 1000);
+}
+
 // 处理登录
 async function handleLogin(e) {
     e.preventDefault();
@@ -143,32 +255,64 @@ async function handleLogin(e) {
 
     try {
         const email = document.getElementById('loginEmail').value;
-        const password = document.getElementById('loginPassword').value;
         const deviceId = document.getElementById('hiddenDeviceId').value;
         const deviceName = document.getElementById('loginDeviceName').value;
         const deviceType = getDeviceType();
 
         // 验证必填字段
-        if (!email || !password || !deviceId || !deviceName || !deviceType) {
+        if (!email || !deviceId || !deviceName || !deviceType) {
             showMessage('请填写所有必填字段', 'error');
             return;
         }
 
-        const response = await fetch('/auth/login', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                email: email,
-                password: password,
-                device_id: deviceId,
-                device_name: deviceName,
-                device_type: deviceType
-            })
-        });
+        let response;
+        let data;
 
-        const data = await response.json();
+        if (currentLoginMethod === 'password') {
+            // 密码登录
+            const password = document.getElementById('loginPassword').value;
+            if (!password) {
+                showMessage('请填写所有必填字段', 'error');
+                return;
+            }
+
+            response = await fetch('/auth/login', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    email: email,
+                    password: password,
+                    device_id: deviceId,
+                    device_name: deviceName,
+                    device_type: deviceType
+                })
+            });
+        } else {
+            // 验证码登录
+            const code = document.getElementById('loginCode').value;
+            if (!code) {
+                showMessage('请填写所有必填字段', 'error');
+                return;
+            }
+
+            response = await fetch('/auth/login-with-code', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    email: email,
+                    code: code,
+                    device_id: deviceId,
+                    device_name: deviceName,
+                    device_type: deviceType
+                })
+            });
+        }
+
+        data = await response.json();
 
         if (response.ok) {
             showMessage('登录成功！', 'success');
@@ -191,7 +335,8 @@ async function handleLogin(e) {
                 window.location.href = '/dashboard';
             });
         } else {
-            showMessage(data.detail || '登录失败，请检查邮箱和密码', 'error');
+            const errorMsg = data.detail || (data.error && data.error.message) || '登录失败，请检查输入信息';
+            showMessage(errorMsg, 'error');
         }
     } catch (error) {
         console.error('登录错误:', error);

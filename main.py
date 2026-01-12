@@ -19,6 +19,8 @@ import models
 import auth
 import schemas
 import log
+import email_service
+from verification_code_cache import code_cache
 
 UPLOAD_DIR = "uploads"
 
@@ -201,6 +203,98 @@ def verify_token(authorization: str = Header(...)):
         )
 
 
+# 发送验证码
+@app.post("/auth/send-verification-code")
+def send_verification_code(request: schemas.SendVerificationCodeRequest, db: Session = Depends(get_db)):
+    """发送邮箱验证码"""
+    email = request.email
+
+    # 检查邮箱是否已注册
+    existing_user = crud.get_user_by_email(db, email=email)
+    if not existing_user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Email not registered"
+        )
+
+    # 生成验证码
+    code = email_service.generate_verification_code()
+    expires_at = email_service.get_code_expires_at()
+
+    # 保存验证码到内存缓存
+    code_cache.save(email, code, expires_at)
+
+    # 发送邮件
+    success = email_service.send_verification_code_email(email, code)
+
+    if not success:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to send verification code email"
+        )
+
+    log.info(f"Verification code sent to {email}")
+
+    return {
+        "code": 0,
+        "message": "Verification code sent successfully"
+    }
+
+
+# 验证码登录
+@app.post("/auth/login-with-code", response_model=schemas.Token)
+def login_with_code(request: schemas.VerifyCodeLoginRequest, db: Session = Depends(get_db)):
+    """使用验证码登录"""
+    email = request.email
+    code = request.code
+
+    # 验证用户是否存在
+    db_user = crud.get_user_by_email(db, email=email)
+    if not db_user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect email or verification code"
+        )
+
+    # 验证验证码
+    if not code_cache.verify(email, code):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid or expired verification code"
+        )
+
+    # 标记验证码为已使用
+    code_cache.mark_as_used(email, code)
+
+    # 获取所有允许的设备类型
+    allowed_types = ['ios', 'android', 'windows', 'macos', 'linux', 'web']
+
+    if request.device_type not in allowed_types:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid device type"
+        )
+
+    # 创建设备并激活设备
+    device = crud.get_or_create_device(db, user_id=db_user.id, device_id=request.device_id,
+                                       device_name=request.device_name,
+                                       device_type=request.device_type, is_active=True)
+    # 更新用户的上线时间
+    db_user.last_login = datetime.now(timezone.utc)
+    db.commit()
+
+    # 创建令牌
+    access_token, refresh_token = create_token(db_user.id, device.id)
+
+    log.info(f"User {db_user.email} logged in with verification code")
+
+    return {
+        "access_token": access_token,
+        "refresh_token": refresh_token,
+        "token_type": "bearer"
+    }
+
+
 @app.post("/auth/refresh", response_model=schemas.Token)
 def refresh_token(refresh_token: str, db: Session = Depends(get_db)):
     credentials_exception = HTTPException(
@@ -327,7 +421,8 @@ async def upload_clipboard_item(background_tasks: BackgroundTasks,
             "content_type": content_type,
             "size": file.size,
         }
-        log.info(f'Received image or file. file name:{file.filename} type:{file.content_type} size:{file.size} path:{file_path} url:{file_url}')
+        log.info(
+            f'Received image or file. file name:{file.filename} type:{file.content_type} size:{file.size} path:{file_path} url:{file_url}')
     else:
         content = data
 

@@ -19,14 +19,41 @@
             <!-- 登录表单 -->
             <form id="loginForm" class="form active">
                 <h2>登录</h2>
+                
+                <!-- 登录方式切换 -->
+                <div class="login-method-switch">
+                    <button type="button" class="method-btn active" id="passwordLoginBtn" onclick="switchLoginMethod('password')">
+                        <i class="fas fa-lock"></i> 密码登录
+                    </button>
+                    <button type="button" class="method-btn" id="codeLoginBtn" onclick="switchLoginMethod('code')">
+                        <i class="fas fa-envelope-circle-check"></i> 验证码登录
+                    </button>
+                </div>
+                
                 <div class="form-group">
                     <i class="fas fa-envelope"></i>
                     <input type="email" id="loginEmail" placeholder="邮箱地址" required>
                 </div>
-                <div class="form-group">
-                    <i class="fas fa-lock"></i>
-                    <input type="password" id="loginPassword" placeholder="密码" required>
+                
+                <!-- 密码登录区域 -->
+                <div id="passwordLoginArea" class="login-area">
+                    <div class="form-group">
+                        <i class="fas fa-lock"></i>
+                        <input type="password" id="loginPassword" placeholder="密码" required>
+                    </div>
                 </div>
+                
+                <!-- 验证码登录区域 -->
+                <div id="codeLoginArea" class="login-area" style="display: none;">
+                    <div class="form-group has-send-btn">
+                        <i class="fas fa-key"></i>
+                        <input type="text" id="loginCode" placeholder="验证码" maxlength="6" required>
+                        <button type="button" id="sendCodeBtn" class="send-code-btn" onclick="sendVerificationCode()">
+                            <span class="btn-text">发送验证码</span>
+                        </button>
+                    </div>
+                </div>
+                
                 <div class="form-group has-generate-btn">
                     <i class="fas fa-desktop"></i>
                     <input type="text" id="loginDeviceName" placeholder="设备名称" required>

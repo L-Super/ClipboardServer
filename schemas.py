@@ -16,6 +16,18 @@ class UserLogin(BaseModel):
     device_type: str
 
 
+class SendVerificationCodeRequest(BaseModel):
+    email: EmailStr
+
+
+class VerifyCodeLoginRequest(BaseModel):
+    email: EmailStr
+    code: str
+    device_id: str
+    device_name: str
+    device_type: str
+
+
 class Token(BaseModel):
     access_token: str
     refresh_token: str
