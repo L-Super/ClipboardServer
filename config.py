@@ -14,7 +14,7 @@ class Settings(BaseSettings):
     LOG_LEVEL: str = "INFO"
     LOG_FORMAT:str = "[%(asctime)s - %(levelname)s (%(name)s) %(filename)s:%(lineno)d] %(message)s"
     LOG_FILE_PATH: str = "logs/app_log.log"
-    LOG_MAX_BYTES: int = 102400
+    LOG_MAX_BYTES: int = 102400 # 100KB
     LOG_BACKUP_COUNT: int = 3
     LOG_ENABLE_CONSOLE: bool = True
     LOG_ENABLE_FILE: bool = True

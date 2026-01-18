@@ -183,7 +183,7 @@ def login(user: schemas.UserLogin, db: Session = Depends(get_db)):
 @app.get("/auth/verify-token")
 def verify_token(authorization: str = Header(...)):
     """
-    校验 access_token 是否有效（通过 Authorization 头）
+    校验 access_token 是否有效
     """
     if not authorization.startswith("Bearer "):
         raise HTTPException(
@@ -372,6 +372,32 @@ async def websocket_endpoint(
         websocket: WebSocket,
         token: str
 ):
+    """
+    WebSocket 实时同步通知接口
+    
+    客户端通过此接口建立 WebSocket 连接，接收来自其他设备的剪贴板更新通知。
+    
+    **连接参数**:
+    - `token`: 访问令牌（access_token），通过查询参数传递
+    
+    **消息格式**:
+    服务器推送的消息为 JSON 格式：
+    ```json
+    {
+        "action": "update",
+        "type": "text|image|file",
+        "data": "内容或文件URL",
+        "data_hash": "内容哈希值",
+        "meta": {}
+    }
+    ```
+    
+    **连接流程**:
+    1. 客户端使用 access_token 建立 WebSocket 连接
+    2. 服务器验证 token 并激活设备
+    3. 当其他设备上传剪贴板内容时，服务器推送通知
+    4. 客户端断开连接时，设备状态自动更新为离线
+    """
     # 验证token
     try:
         payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
