@@ -29,10 +29,10 @@ def send_verification_code_email(to_email: str, code: str) -> bool:
     """
     try:
         # 创建邮件对象，同时支持HTML和Plain格式
-        msg = MIMEMultipart('alternative')
-        msg['Subject'] = 'Floward 验证码登录'
-        msg['From'] = config.settings.SMTP_FROM_EMAIL
-        msg['To'] = to_email
+        message = MIMEMultipart('alternative')
+        message['Subject'] = 'Floward 验证码'
+        message['From'] = config.settings.SMTP_FROM_EMAIL
+        message['To'] = to_email
 
         # HTML 格式
         html_content = f"""
@@ -66,13 +66,13 @@ def send_verification_code_email(to_email: str, code: str) -> bool:
         """
 
         # 添加文本和HTML版本，会优先显示 HTML，不支持时回退到纯文本
-        msg.attach(MIMEText(text_content, 'plain', 'utf-8'))
-        msg.attach(MIMEText(html_content, 'html', 'utf-8'))
+        message.attach(MIMEText(text_content, 'plain', 'utf-8'))
+        message.attach(MIMEText(html_content, 'html', 'utf-8'))
 
         # 连接SMTP服务器并发送
         with smtplib.SMTP_SSL(config.settings.SMTP_HOST, config.settings.SMTP_PORT) as server:
             server.login(config.settings.SMTP_USER, config.settings.SMTP_PASSWORD)
-            server.send_message(config.settings)
+            server.send_message(message)
 
         log.info(f"Verification code email sent to {to_email}")
         return True

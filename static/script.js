@@ -41,7 +41,7 @@ function switchLoginMethod(method) {
     const codeArea = document.getElementById('codeLoginArea');
     const passwordInput = document.getElementById('loginPassword');
     const codeInput = document.getElementById('loginCode');
-    
+
     if (method === 'password') {
         passwordBtn.classList.add('active');
         codeBtn.classList.remove('active');
@@ -169,30 +169,30 @@ function setButtonLoading(button, loading) {
 async function sendVerificationCode() {
     const email = document.getElementById('loginEmail').value;
     const sendBtn = document.getElementById('sendCodeBtn');
-    
+
     // 验证邮箱格式
     if (!email) {
         showMessage('请先输入邮箱地址', 'error');
         return;
     }
-    
+
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
         showMessage('请输入有效的邮箱地址', 'error');
         return;
     }
-    
+
     // 如果正在倒计时，不允许重复发送
     if (codeCountdown > 0) {
         return;
     }
-    
+
     // 设置按钮加载状态
     const btnText = sendBtn.querySelector('.btn-text');
     const originalText = btnText.textContent;
     sendBtn.disabled = true;
     btnText.textContent = '发送中...';
-    
+
     try {
         const response = await fetch('/auth/send-verification-code', {
             method: 'POST',
@@ -203,9 +203,9 @@ async function sendVerificationCode() {
                 email: email
             })
         });
-        
+
         const data = await response.json();
-        
+
         if (response.ok) {
             showMessage('验证码已发送，请查收邮件', 'success');
             // 开始倒计时
@@ -231,9 +231,9 @@ function startCodeCountdown() {
     codeCountdown = 60; // 60秒倒计时
     const sendBtn = document.getElementById('sendCodeBtn');
     const btnText = sendBtn.querySelector('.btn-text');
-    
+
     sendBtn.disabled = true;
-    
+
     const timer = setInterval(() => {
         codeCountdown--;
         if (codeCountdown > 0) {
