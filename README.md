@@ -151,4 +151,4 @@ LOG_LEVEL=INFO
 
 ## License
 
-MIT License
+[MIT License](LICENSE)

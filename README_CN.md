@@ -149,4 +149,4 @@ LOG_LEVEL=INFO
 
 ## 许可证
 
-MIT License
+[MIT License](LICENSE)
