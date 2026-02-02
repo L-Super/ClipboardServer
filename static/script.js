@@ -149,7 +149,7 @@ async function handleLogin(e) {
         const deviceType = getDeviceType();
 
         // 验证必填字段
-        if (!email || !password || !deviceId || !deviceName || !deviceType) {
+        if (!email || !password || !deviceId || !deviceName) {
             showMessage('请填写所有必填字段', 'error');
             return;
         }
