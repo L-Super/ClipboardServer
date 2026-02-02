@@ -5,6 +5,8 @@ let codeCountdown = 0; // 验证码倒计时
 
 // 页面加载完成后初始化
 document.addEventListener('DOMContentLoaded', function () {
+    // 初始化为密码登录
+    switchLoginMethod('password');
     // 绑定表单提交事件
     document.getElementById('loginForm').addEventListener('submit', handleLogin);
     document.getElementById('registerForm').addEventListener('submit', handleRegister);
