@@ -274,7 +274,7 @@ async function handleLogin(e) {
             // 密码登录
             const password = document.getElementById('loginPassword').value;
             if (!password) {
-                showMessage('请填写所有必填字段', 'error');
+                showMessage('请填写密码', 'error');
                 return;
             }
 
@@ -295,7 +295,7 @@ async function handleLogin(e) {
             // 验证码登录
             const code = document.getElementById('loginCode').value;
             if (!code) {
-                showMessage('请填写所有必填字段', 'error');
+                showMessage('请填写验证码', 'error');
                 return;
             }
 
