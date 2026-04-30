@@ -19,6 +19,9 @@ class Settings(BaseSettings):
     LOG_ENABLE_CONSOLE: bool = True
     LOG_ENABLE_FILE: bool = True
 
+    # upload config
+    MAX_UPLOAD_SIZE_MB: int = 20  # 上传文件最大大小（MB）
+
     # use env file to get var
     class Config:
         env_file = ".env"
