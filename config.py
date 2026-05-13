@@ -22,6 +22,14 @@ class Settings(BaseSettings):
     # upload config
     MAX_UPLOAD_SIZE_MB: int = 20  # 上传文件最大大小（MB）
 
+    # email config
+    SMTP_HOST: str = ""  # SMTP 服务器地址
+    SMTP_PORT: int = 587  # SMTP 端口，587 为 TLS 加密端口
+    SMTP_USER: str = ""  # SMTP 登录用户名（通常为邮箱地址）
+    SMTP_PASSWORD: str = ""  # SMTP 授权码（非邮箱登录密码）
+    SMTP_FROM_EMAIL: str = ""  # 发件人邮箱地址
+    EMAIL_CODE_EXPIRE_MINUTES: int = 5  # 验证码有效期（分钟）
+
     # use env file to get var
     class Config:
         env_file = ".env"
