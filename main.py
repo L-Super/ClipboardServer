@@ -4,7 +4,7 @@ from datetime import datetime, timedelta, timezone
 
 import uvicorn
 from fastapi import FastAPI, HTTPException, status, Depends, WebSocket, WebSocketDisconnect, BackgroundTasks, \
-    UploadFile, Form, File, Header
+    UploadFile, Form, File, Header, Query
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import HTMLResponse
 from jose import jwt, JWTError
@@ -28,7 +28,8 @@ UPLOAD_DIR = "uploads"
 def save_upload_file(file: UploadFile) -> str:
     if not os.path.exists(UPLOAD_DIR):
         os.makedirs(UPLOAD_DIR)
-    ext = os.path.splitext(file.filename)[-1]
+    safe_name = os.path.basename(file.filename or "unknown")
+    ext = os.path.splitext(safe_name)[-1].lower()
     filename = f"{datetime.now().strftime('%Y%m%d_%H%M%S_%f')}{ext}"
     file_path = os.path.join(UPLOAD_DIR, filename)
     with open(file_path, "wb") as f:
@@ -72,32 +73,40 @@ async def shutdown_event():
     log.info('App was shut down')
 
 
+SECURITY_HEADERS = {
+    "Content-Security-Policy": "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'",
+    "X-Content-Type-Options": "nosniff",
+    "X-Frame-Options": "DENY",
+}
+
+
+def read_html(file_path: str) -> HTMLResponse:
+    with open(file_path, "r", encoding="utf-8") as f:
+        return HTMLResponse(content=f.read(), headers=SECURITY_HEADERS)
+
+
 # 根路由 - 返回登录页面
 @app.get("/", response_class=HTMLResponse)
 async def root():
-    with open("static/index.html", "r", encoding="utf-8") as f:
-        return HTMLResponse(content=f.read())
+    return read_html("static/index.html")
 
 
 # 登录页面路由
 @app.get("/login", response_class=HTMLResponse)
 async def login_page():
-    with open("static/index.html", "r", encoding="utf-8") as f:
-        return HTMLResponse(content=f.read())
+    return read_html("static/index.html")
 
 
 # 仪表板页面路由
 @app.get("/dashboard", response_class=HTMLResponse)
 async def dashboard():
-    with open("static/dashboard.html", "r", encoding="utf-8") as f:
-        return HTMLResponse(content=f.read())
+    return read_html("static/dashboard.html")
 
 
 # 设备指纹测试页面路由
 @app.get("/test-fingerprint", response_class=HTMLResponse)
 async def test_fingerprint():
-    with open("static/test_fingerprint.html", "r", encoding="utf-8") as f:
-        return HTMLResponse(content=f.read())
+    return read_html("static/test_fingerprint.html")
 
 
 def create_token(user_id: str, device_id: str) -> tuple[str, str]:
@@ -110,7 +119,7 @@ def create_token(user_id: str, device_id: str) -> tuple[str, str]:
 
     # 创建刷新令牌
     r_token = auth.create_refresh_token(
-        data={"sub": user_id},
+        data={"sub": user_id, "device_id": device_id},
     )
     return a_token, r_token
 
@@ -185,7 +194,7 @@ def login(user: schemas.UserLogin, db: Session = Depends(get_db)):
 @app.get("/auth/verify-token")
 def verify_token(authorization: str = Header(...)):
     """
-    校验 access_token 是否有效（通过 Authorization 头）
+    校验 access_token 是否有效
     """
     if not authorization.startswith("Bearer "):
         raise HTTPException(
@@ -305,7 +314,8 @@ def refresh_token(refresh_token: str, db: Session = Depends(get_db)):
     try:
         payload = jwt.decode(refresh_token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
         user_id: str = payload.get("sub")
-        if user_id is None:
+        device_id: str = payload.get("device_id")
+        if user_id is None or device_id is None:
             raise credentials_exception
     except JWTError:
         raise credentials_exception
@@ -316,7 +326,9 @@ def refresh_token(refresh_token: str, db: Session = Depends(get_db)):
 
     # 获取当前设备
     device = db.query(models.Device).filter(
-        models.Device.user_id == user_id).order_by(models.Device.last_active.desc()).first()
+        models.Device.id == device_id,
+        models.Device.user_id == user_id
+    ).first()
 
     if not device:
         raise HTTPException(
@@ -349,7 +361,7 @@ def get_devices(
 @app.patch("/devices/{device_id}/rename")
 def rename_device(
         device_id: str,
-        new_name: str,
+        new_name: str = Query(..., min_length=1, max_length=50),
         current_user: models.User = Depends(auth.get_current_user),
         db: Session = Depends(get_db)
 ):
@@ -411,6 +423,14 @@ async def upload_clipboard_item(background_tasks: BackgroundTasks,
     content_type: str = ''
 
     if type in ("image", "file") and file:
+        # 检查文件大小
+        max_size = settings.MAX_UPLOAD_SIZE_MB * 1024 * 1024
+        if file.size and file.size > max_size:
+            raise HTTPException(
+                status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+                detail=f"File size exceeds {settings.MAX_UPLOAD_SIZE_MB}MB limit"
+            )
+
         file_path = save_upload_file(file)
         file_url = get_file_url(file_path)
 
@@ -467,6 +487,32 @@ async def websocket_endpoint(
         websocket: WebSocket,
         token: str
 ):
+    """
+    WebSocket 实时同步通知接口
+    
+    客户端通过此接口建立 WebSocket 连接，接收来自其他设备的剪贴板更新通知。
+    
+    **连接参数**:
+    - `token`: 访问令牌（access_token），通过查询参数传递
+    
+    **消息格式**:
+    服务器推送的消息为 JSON 格式：
+    ```json
+    {
+        "action": "update",
+        "type": "text|image|file",
+        "data": "内容或文件URL",
+        "data_hash": "内容哈希值",
+        "meta": {}
+    }
+    ```
+    
+    **连接流程**:
+    1. 客户端使用 access_token 建立 WebSocket 连接
+    2. 服务器验证 token 并激活设备
+    3. 当其他设备上传剪贴板内容时，服务器推送通知
+    4. 客户端断开连接时，设备状态自动更新为离线
+    """
     # 验证token
     try:
         payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
@@ -548,7 +594,7 @@ async def notify_devices_of_update(user_id: str, source_device_id: str, item: mo
 
         # 向所有相关设备发送通知
         for device in devices:
-            log.info(f'Notify user:{user_id}  from device:{source_device_id} to device:{device.id}')
+            log.info(f'Notify user:{user_id} from device:{source_device_id} to device:{device.id}')
             log.debug(f'Send websocket message:{message}')
             await manager.send_personal_message(message, user_id, device.id)
 
