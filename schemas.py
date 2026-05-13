@@ -61,6 +61,7 @@ class FileInfo(BaseModel):
 class ClipboardItemResponse(BaseModel):
     id: int
     created_at: datetime
+    hash: str
     file_info: Optional[FileInfo] = None
 
 

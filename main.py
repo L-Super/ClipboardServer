@@ -467,6 +467,7 @@ async def upload_clipboard_item(background_tasks: BackgroundTasks,
         return {
             "id": db_item.id,
             "created_at": db_item.created_at,
+            "hash": db_item.content_hash,
             "file_info": {
                 "url": file_url,  # 文件访问URL
                 "filename": file.filename,  # 原始文件名
@@ -478,6 +479,7 @@ async def upload_clipboard_item(background_tasks: BackgroundTasks,
     return {
         "id": db_item.id,
         "created_at": db_item.created_at,
+        "hash": db_item.content_hash,
     }
 
 
