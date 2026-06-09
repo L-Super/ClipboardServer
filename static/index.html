@@ -6,109 +6,116 @@
     <title>Floward 同步服务- 登录/注册</title>
     <link rel="shortcut icon" href="/static/favicon.ico">
     <link rel="stylesheet" href="/static/style.css">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="/static/font-awesome.min.css">
 </head>
 <body>
-    <div class="container">
-        <div class="form-container">
-            <div class="form-header">
-                <h1>Floward</h1>
-                <p>跨设备同步您的剪贴板内容</p>
-            </div>
-            
-            <!-- 登录表单 -->
-            <form id="loginForm" class="form active">
-                <h2>登录</h2>
-                
-                <!-- 登录方式切换 -->
-                <div class="login-method-switch">
-                    <button type="button" class="method-btn active" id="passwordLoginBtn" onclick="switchLoginMethod('password')">
-                        <i class="fas fa-lock"></i> 密码登录
-                    </button>
-                    <button type="button" class="method-btn" id="codeLoginBtn" onclick="switchLoginMethod('code')">
-                        <i class="fas fa-envelope"></i> 验证码登录
-                    </button>
-                </div>
-                
-                <div class="form-group">
-                    <i class="fas fa-envelope"></i>
-                    <input type="email" id="loginEmail" placeholder="邮箱地址" required>
-                </div>
-                
-                <!-- 密码登录区域 -->
-                <div id="passwordLoginArea" class="login-area">
-                    <div class="form-group">
-                        <i class="fas fa-lock"></i>
-                        <input type="password" id="loginPassword" placeholder="密码" required>
-                    </div>
-                </div>
-                
-                <!-- 验证码登录区域 -->
-                <div id="codeLoginArea" class="login-area" style="display: none;">
-                    <div class="form-group has-send-btn">
-                        <i class="fas fa-key"></i>
-                        <input type="text" id="loginCode" placeholder="验证码" maxlength="6" required>
-                        <button type="button" id="sendCodeBtn" class="send-code-btn" onclick="sendVerificationCode()">
-                            <span class="btn-text">发送验证码</span>
-                        </button>
-                    </div>
-                </div>
-                
-                <div class="form-group has-generate-btn">
-                    <i class="fas fa-desktop"></i>
-                    <input type="text" id="loginDeviceName" placeholder="设备名称" required>
-                    <button type="button" id="generateDeviceNameBtn" class="generate-btn" title="自动生成设备名称">
-                        <i class="fas fa-pen-to-square"></i>
-                    </button>
-                </div>
-                <button type="submit" class="btn btn-primary">
-                    <span class="btn-text">登录</span>
-                    <span class="btn-loading" style="display: none;">
-                        <i class="fas fa-spinner fa-spin"></i>
-                    </span>
-                </button>
-                <p class="form-switch">
-                    还没有账号？ <a href="#" onclick="switchForm('register')">立即注册</a>
-                </p>
-            </form>
-
-            <!-- 注册表单 -->
-            <form id="registerForm" class="form">
-                <h2>注册</h2>
-
-                <div class="form-group">
-                    <i class="fas fa-envelope"></i>
-                    <input type="email" id="registerEmail" placeholder="邮箱地址" required>
-                </div>
-                <div class="form-group">
-                    <i class="fas fa-lock"></i>
-                    <input type="password" id="registerPassword" placeholder="密码" required>
-                </div>
-                <div class="form-group">
-                    <i class="fas fa-lock"></i>
-                    <input type="password" id="registerConfirmPassword" placeholder="确认密码" required>
-                </div>
-                <button type="submit" class="btn btn-primary">
-                    <span class="btn-text">注册</span>
-                    <span class="btn-loading" style="display: none;">
-                        <i class="fas fa-spinner fa-spin"></i>
-                    </span>
-                </button>
-                <p class="form-switch">
-                    已有账号？ <a href="#" onclick="switchForm('login')">立即登录</a>
-                </p>
-            </form>
+<div class="container">
+    <div class="form-container">
+        <div class="form-header">
+            <h1>Floward</h1>
+            <p>跨设备同步您的剪贴板内容</p>
         </div>
-    </div>
 
-    <!-- 消息提示 -->
-    <div id="message" class="message" style="display: none;">
-        <span id="messageText"></span>
-        <button onclick="hideMessage()" class="message-close">
-            <i class="fas fa-times"></i>
-        </button>
-    </div>
+        <!-- 登录表单 -->
+        <form id="loginForm" class="form active">
+            <h2>登录</h2>
 
-    <script src="/static/script.js"></script>
+            <!-- 登录方式切换 -->
+            <div class="login-method-switch">
+                <button type="button" class="method-btn active" id="passwordLoginBtn"
+                        onclick="switchLoginMethod('password')">
+                    <i class="fas fa-lock"></i> 密码登录
+                </button>
+                <button type="button" class="method-btn" id="codeLoginBtn" onclick="switchLoginMethod('code')">
+                    <i class="fas fa-envelope"></i> 验证码登录
+                </button>
+            </div>
+                
+            <div class="form-group">
+                <i class="fas fa-envelope"></i>
+                <input type="email" id="loginEmail" name="email" placeholder="邮箱地址" autocomplete="email" required>
+            </div>
+
+            <!-- 密码登录区域 -->
+            <div id="passwordLoginArea" class="login-area">
+                <div class="form-group">
+                    <i class="fas fa-lock"></i>
+                    <input type="password" id="loginPassword" name="password" placeholder="密码"
+                           autocomplete="current-password" required>
+                </div>
+            </div>
+
+            <!-- 验证码登录区域 -->
+            <div id="codeLoginArea" class="login-area" style="display: none;">
+                <div class="form-group has-send-btn">
+                    <i class="fas fa-key"></i>
+                    <input type="text" id="loginCode" name="code" placeholder="验证码" maxlength="6"
+                           autocomplete="one-time-code">
+                    <button type="button" id="sendCodeBtn" class="send-code-btn" onclick="sendVerificationCode()">
+                        <span class="btn-text">发送验证码</span>
+                    </button>
+                </div>
+            </div>
+
+            <div class="form-group has-generate-btn">
+                <i class="fas fa-desktop"></i>
+                <input type="text" id="loginDeviceName" name="device_name" placeholder="设备名称" autocomplete="off"
+                       required>
+                <button type="button" id="generateDeviceNameBtn" class="generate-btn" title="自动生成设备名称">
+                    <i class="fas fa-pen-to-square"></i>
+                </button>
+            </div>
+            <button type="submit" class="btn btn-primary">
+                <span class="btn-text">登录</span>
+                <span class="btn-loading" style="display: none;">
+                        <i class="fas fa-spinner fa-spin"></i>
+                    </span>
+            </button>
+            <p class="form-switch">
+                还没有账号？ <a href="#" onclick="switchForm('register')">立即注册</a>
+            </p>
+        </form>
+
+        <!-- 注册表单 -->
+        <form id="registerForm" class="form">
+            <h2>注册</h2>
+
+            <div class="form-group">
+                <i class="fas fa-envelope"></i>
+                <input type="email" id="registerEmail" name="email" placeholder="邮箱地址" autocomplete="email"
+                       required>
+            </div>
+            <div class="form-group">
+                <i class="fas fa-lock"></i>
+                <input type="password" id="registerPassword" name="new-password" placeholder="密码"
+                       autocomplete="new-password" required>
+            </div>
+            <div class="form-group">
+                <i class="fas fa-lock"></i>
+                <input type="password" id="registerConfirmPassword" name="confirm-password" placeholder="确认密码"
+                       autocomplete="new-password" required>
+            </div>
+            <button type="submit" class="btn btn-primary">
+                <span class="btn-text">注册</span>
+                <span class="btn-loading" style="display: none;">
+                        <i class="fas fa-spinner fa-spin"></i>
+                    </span>
+            </button>
+            <p class="form-switch">
+                已有账号？ <a href="#" onclick="switchForm('login')">立即登录</a>
+            </p>
+        </form>
+    </div>
+</div>
+
+<!-- 消息提示 -->
+<div id="message" class="message" style="display: none;">
+    <span id="messageText"></span>
+    <button onclick="hideMessage()" class="message-close">
+        <i class="fas fa-times"></i>
+    </button>
+</div>
+
+<script src="/static/script.js"></script>
 </body>
 </html>
