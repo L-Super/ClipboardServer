@@ -4,17 +4,17 @@ version = "0.1.0"
 description = "Clipboard sync API server"
 requires-python = ">=3.11"
 dependencies = [
-    "fastapi>=0.136.1",
+    "fastapi>=0.136.3",
     "bcrypt==5.0.0",
-    "pydantic-settings>=2.14.0",
-    "pydantic[email]>=2.13.3",
+    "pydantic-settings>=2.14.1",
+    "pydantic[email]>=2.13.4",
     "python-jose>=3.5.0",
-    "sqlalchemy>=2.0.41",
-    "uvicorn[standard]>=0.35.0",
+    "sqlalchemy>=2.0.50",
+    "uvicorn[standard]>=0.49.0",
     "websockets>=16.0.0",
-    "python-multipart>=0.0.27",
-    "pymysql>=1.1.2",
-    "cryptography>=47.0.0",
+    "python-multipart>=0.0.32",
+    "pymysql>=1.2.0",
+    "cryptography>=48.0.0",
 ]
 
 [project.optional-dependencies]
