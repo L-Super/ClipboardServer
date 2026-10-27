@@ -71,3 +71,5 @@ class WebSocketMessage(BaseModel):
     data: str  # 对于图片，是URL
     data_hash: str
     meta: Optional[dict] = None
+    message_id: str  # 用于客户端回 ACK 确认的唯一消息ID
+    timestamp: Optional[float] = None

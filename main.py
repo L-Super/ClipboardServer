@@ -1,5 +1,7 @@
 import mimetypes
 import os
+import time
+import uuid
 from datetime import datetime, timedelta, timezone
 
 import uvicorn
@@ -60,11 +62,14 @@ manager = ConnectionManager()
 
 # 应用程序启动前运行
 @app.on_event("startup")
-def on_startup():
+async def on_startup():
     log.setup_logging()
 
     # 创建数据库表
     create_db()
+
+    # 启动 ACK 超时重试后台任务
+    manager.start_retry_loop()
 
 
 @app.on_event("shutdown")
@@ -550,8 +555,8 @@ async def websocket_endpoint(
         while True:
             data = await websocket.receive_text()
             log.debug(f'received message: {data}')
-            # 客户端可以发送心跳或其他控制消息
-            # 在此实现中我们主要处理服务器推送
+            # 客户端可以发送心跳、ACK 等消息
+            manager.handle_client_message(user_id, device_id, data)
     except WebSocketDisconnect as e:
         log.warning(f'user: {user_id} device: {device_id} websocket offline. reason: {e}')
     except Exception as e:
@@ -585,20 +590,26 @@ async def notify_devices_of_update(user_id: str, source_device_id: str, item: mo
             return
 
         log.info(f'Notify devices of update. device count: {len(devices)}')
-        # 准备通知消息
-        message = schemas.WebSocketMessage(
-            action="update",
-            type=item.item_type,
-            data=item.content,
-            data_hash=item.content_hash,
-            meta=item.meta_data or {}
-        ).model_dump_json()
 
-        # 向所有相关设备发送通知
+        # 向所有相关设备发送通知（每台设备一条独立的 message_id 用于 ACK 确认）
         for device in devices:
-            log.info(f'Notify user:{user_id} from device:{source_device_id} to device:{device.id}')
-            log.debug(f'Send websocket message:{message}')
-            await manager.send_personal_message(message, user_id, device.id)
+            message_id = str(uuid.uuid4())
+            message = schemas.WebSocketMessage(
+                action="update",
+                type=item.item_type,
+                data=item.content,
+                data_hash=item.content_hash,
+                meta=item.meta_data or {},
+                message_id=message_id,
+                timestamp=time.time(),
+            ).model_dump_json()
+
+            log.info(f'Notify user:{user_id} from device:{source_device_id} to device:{device.id} msg_id:{message_id}')
+            try:
+                # 单台设备发送失败不影响其他设备
+                await manager.send_with_ack(user_id, device.id, message, message_id)
+            except Exception:
+                log.error(f'notify device {device.id} failed', exc_info=True)
 
 
 # 错误处理

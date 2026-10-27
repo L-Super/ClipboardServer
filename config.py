@@ -22,6 +22,10 @@ class Settings(BaseSettings):
     # upload config
     MAX_UPLOAD_SIZE_MB: int = 20  # 上传文件最大大小（MB）
 
+    # sync notify config
+    SYNC_ACK_TIMEOUT_SECONDS: int = 10  # 10 秒没收到 ACK 就重试
+    SYNC_MAX_RETRIES: int = 3           # 最多重试 3 次
+
     # email config
     SMTP_HOST: str = ""  # SMTP 服务器地址
     SMTP_PORT: int = 587  # SMTP 端口，587 为 TLS 加密端口
