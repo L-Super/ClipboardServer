@@ -2,10 +2,6 @@ services:
   clipboard-server:
     build:
       context: .
-      cache_from:
-        - type=local,src=.docker-cache
-      cache_to:
-        - type=local,dest=.docker-cache,mode=max
     image: clipboard-server:dev
     container_name: clipboard-server-dev
     restart: unless-stopped
