@@ -90,6 +90,11 @@ def read_html(file_path: str) -> HTMLResponse:
         return HTMLResponse(content=f.read(), headers=SECURITY_HEADERS)
 
 
+@app.get("/healthz")
+async def healthz():
+    return {"status": "ok"}
+
+
 # 根路由 - 返回登录页面
 @app.get("/", response_class=HTMLResponse)
 async def root():

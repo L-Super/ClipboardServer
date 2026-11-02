@@ -64,10 +64,9 @@ clipboard_server/
 ### 方式一：使用 docker-compose
 
 ```bash
-# 启动
-docker compose up -d --build
-# 实时同步代码更改到容器中
-docker compose up --watch
+# 生产环境：拉取 GHCR 镜像并启动
+docker compose pull
+docker compose up -d
 
 # 查看日志
 docker compose logs -f
@@ -77,6 +76,15 @@ docker compose down
 ```
 
 服务暴露端口：`8000`，若与宿主机端口冲突，可在 `docker-compose.yml` 中调整为 `宿主:容器` 映射，例如 `18000:8000`。
+
+### 开发环境：本地构建镜像
+
+```bash
+docker compose -f docker-compose-dev.yml up -d --build
+docker compose -f docker-compose-dev.yml watch
+```
+
+开发环境使用 `Dockerfile` 本地构建，并通过 Compose Watch 同步源码；生产环境使用 `docker-compose.yml` 直接运行 GHCR 镜像。
 
 ### 方式二：使用 Docker 直接构建运行
 
@@ -89,23 +97,28 @@ docker run -d \
   --name clipboard-server \
   -p 8000:8000 \
   -e SECRET_KEY=please_change_me \
-  -e DATABASE_URL=sqlite:///data/clipboard.db \
   -e TZ=Asia/Shanghai \
   -v %cd%/uploads:/app/uploads \
-  -v %cd%/data:/app/data \
   -v %cd%/static:/app/static:ro \
   clipboard-server:latest
 ```
 
 说明：
 - 若在 Linux/macOS，将上面的 `%cd%` 替换为 `$(pwd)`。
-- 默认使用 SQLite，数据库文件位于容器内 `/app/data/clipboard.db`。
 
 ### 方式三：拉取 Docker 镜像
 
 ```bash
-chumoshi/clipboard-server
+docker pull ghcr.io/l-super/clipboardserver:latest
+docker run -d --name clipboard-server \
+  -p 8000:8000 \
+  --env-file .env \
+  -v "${PWD}/uploads:/app/uploads" \
+  -v "${PWD}/logs:/app/logs" \
+  ghcr.io/l-super/clipboardserver:latest
 ```
+
+推送到 `main` 分支或创建 `v*.*.*` 标签后，GitHub Actions 会自动构建并发布镜像到 GitHub Container Registry（GHCR）。
 
 
 ## API 文档

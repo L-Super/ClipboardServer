@@ -1,30 +1,19 @@
 services:
   clipboard-server:
-    build: .
+    image: ghcr.io/l-super/clipboardserver:latest
     container_name: clipboard-server
     restart: unless-stopped
     ports:
       - "8000:8000"
-    env_file:
-      - path: ./.env
+    env_file: .env
     volumes:
       # - ./.env:/app/.env
       - ./uploads:/app/uploads
       - ./logs:/app/logs
-    develop:
-      # 创建一个 `watch` 来更新应用程序
-      watch:
-        # 将工作目录与容器中的 `/app` 目录同步
-        - action: sync
-          path: .
-          target: /app
-          # 排除项目虚拟环境
-          ignore:
-            - .venv/
-            - __pycache__/
-
-        # 当 `pyproject.toml` 发生变化时重建镜像
-        - action: rebuild
-          path: ./pyproject.toml
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/healthz')"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
 
 

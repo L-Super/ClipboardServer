@@ -66,10 +66,9 @@ clipboard_server/
 ### Method 1: Using docker-compose
 
 ```bash
-# Start
-docker compose up -d --build
-# Real-time sync code changes to container
-docker compose up --watch
+# Production: pull the GHCR image and start
+docker compose pull
+docker compose up -d
 
 # View logs
 docker compose logs -f
@@ -79,6 +78,15 @@ docker compose down
 ```
 
 Service exposes port: `8000`. If it conflicts with host port, adjust the `host:container` mapping in `docker-compose.yml`, e.g., `18000:8000`.
+
+### Development: Build Locally
+
+```bash
+docker compose -f docker-compose-dev.yml up -d --build
+docker compose -f docker-compose-dev.yml watch
+```
+
+The development Compose file builds from the local `Dockerfile` and uses Compose Watch to sync source changes. The default Compose file runs the published GHCR image.
 
 ### Method 2: Direct Docker Build and Run
 
@@ -91,23 +99,28 @@ docker run -d \
   --name clipboard-server \
   -p 8000:8000 \
   -e SECRET_KEY=please_change_me \
-  -e DATABASE_URL=sqlite:///data/clipboard.db \
   -e TZ=Asia/Shanghai \
   -v %cd%/uploads:/app/uploads \
-  -v %cd%/data:/app/data \
   -v %cd%/static:/app/static:ro \
   clipboard-server:latest
 ```
 
 Notes:
 - On Linux/macOS, replace `%cd%` with `$(pwd)`.
-- Default uses SQLite, database file located at `/app/data/clipboard.db` in container.
 
 ### Method 3: Pull Docker Image
 
 ```bash
-chumoshi/clipboard-server
+docker pull ghcr.io/l-super/clipboardserver:latest
+docker run -d --name clipboard-server \
+  -p 8000:8000 \
+  --env-file .env \
+  -v "${PWD}/uploads:/app/uploads" \
+  -v "${PWD}/logs:/app/logs" \
+  ghcr.io/l-super/clipboardserver:latest
 ```
+
+Pushing to the `main` branch or creating a `v*.*.*` tag automatically builds and publishes the image to GitHub Container Registry (GHCR).
 
 
 ## API Documentation
